@@ -27,6 +27,12 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class StrimziReporterMetrics extends MetricsConfig {
     public static final String TYPE_STRIMZI_REPORTER_METRICS = "strimziMetricsReporter";
+    /**
+     * -- SETTER --
+     *  Sets the configuration values for Strimzi Metrics Reporter.
+     *
+     * @param values the configuration values to set
+     */
     private StrimziReporterValues values;
 
     /**
@@ -52,12 +58,4 @@ public class StrimziReporterMetrics extends MetricsConfig {
         return values;
     }
 
-    /**
-     * Sets the configuration values for Strimzi Metrics Reporter.
-     *
-     * @param values the configuration values to set
-     */
-    public void setValues(StrimziReporterValues values) {
-        this.values = values;
-    }
 }
