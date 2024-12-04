@@ -49,5 +49,22 @@ public abstract class MetricsConfig implements UnknownPropertyPreserving {
         }
         this.additionalProperties.put(name, value);
     }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        MetricsConfig that = (MetricsConfig) o;
+
+        return additionalProperties != null
+                ? additionalProperties.equals(that.additionalProperties)
+                : that.additionalProperties == null;
+    }
+
+    @Override
+    public int hashCode() {
+        return additionalProperties != null ? additionalProperties.hashCode() : 0;
+    }
+
 }
 
