@@ -32,7 +32,7 @@ public class StrimziReporterValues implements UnknownPropertyPreserving {
 
     private final String regex = ".*";
     private List<String> allowList = List.of(regex); // Default value
-    private Map<String, Object> additionalProperties = new HashMap<>();
+    private Map<String, Object> additionalProperties;
 
     @Description("Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.")
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
