@@ -57,6 +57,7 @@ public class KafkaClusterSpec implements HasConfigurableMetrics, HasConfigurable
     // TODO : we must add prefixes here to lockdown reporter configs - listener & port
     public static final String FORBIDDEN_PREFIXES = "listeners, advertised., broker., listener., host.name, port, "
             + "inter.broker.listener.name, sasl., ssl., security., password., log.dir, "
+            + "prometheus.metrics.reporter.listener, "
             + "zookeeper.connect, zookeeper.set.acl, zookeeper.ssl, zookeeper.clientCnxnSocket, authorizer., super.user, "
             + "cruise.control.metrics.topic, cruise.control.metrics.reporter.bootstrap.servers, "
             + "node.id, process.roles, controller., metadata.log.dir, zookeeper.metadata.migration.enable, " // KRaft options
