@@ -1951,7 +1951,7 @@ public class KafkaClusterTest {
 
     @ParallelTest
     public void testMetricsParsingNoMetrics() {
-        assertThat(KC.metrics().isEnabled(), is(false));
+        assertThat(KC.metrics(), is(nullValue()));
         assertThat(KC.metrics().getConfigMapName(), is(nullValue()));
         assertThat(KC.metrics().getConfigMapKey(), is(nullValue()));
     }
