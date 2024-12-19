@@ -60,21 +60,6 @@ public class KafkaBrokerConfigurationBuilder {
     // Names of environment variables expanded through config providers inside the Kafka node
     private final static String PLACEHOLDER_CERT_STORE_PASSWORD = "${strimzienv:CERTS_STORE_PASSWORD}";
     private final static String PLACEHOLDER_OAUTH_CLIENT_SECRET = "${strimzienv:STRIMZI_%s_OAUTH_CLIENT_SECRET}";
-    // Defaults
-    /**
-     * Default value for enabling metrics reporter
-     */
-    public static final boolean PROMETHEUS_METRICS_REPORTER_LISTENER_ENABLE = false;
-
-    /**
-     * Default listener name for the metrics reporter
-     */
-    public static final String PROMETHEUS_METRICS_REPORTER_LISTENER = "http://8080";
-
-    /**
-     * Default allowlist name for the metrics reporter
-     */
-    public static final List<String> PROMETHEUS_METRICS_REPORTER_ALLOWLIST = List.of(".*");
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
     private final Reconciliation reconciliation;
@@ -162,20 +147,20 @@ public class KafkaBrokerConfigurationBuilder {
     /**
      * Configures the Strimzi Metrics Reporter. It is set only if user enabled Strimzi Metrics Reporter.
      *
-     * @param strimziMetricsReporter     Cruise Control Metrics Reporter configuration
+     * @param model     Cruise Control Metrics Reporter configuration
      *
      * @return Returns the builder instance
      */
-    public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(StrimziReporterMetricsModel strimziMetricsReporter)   {
-        if (strimziMetricsReporter != null && strimziMetricsReporter.isEnabled()) {
+    public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(StrimziReporterMetricsModel model)   {
+        if (model != null && model.isEnabled()) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
-            writer.println(PROMETHEUS_METRICS_REPORTER_LISTENER_ENABLE + "=false");
-            writer.println(PROMETHEUS_METRICS_REPORTER_LISTENER + "=http://8080");
-            //writer.println(PROMETHEUS_METRICS_REPORTER_ALLOWLIST + "=.*");
-
-            if (strimziMetricsReporter != null && strimziMetricsReporter.isEnabled()) {
-                writer.println(PROMETHEUS_METRICS_REPORTER_ALLOWLIST + "=" + strimziMetricsReporter.getAllowList());
-            }
+            writer.println("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
+            // ** This is not final.... return to this because we can have other user added plugins, also CC etc. Setting for now so we can manually test!!
+            // Look at withUserConfiguration
+            writer.println("metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
+            writer.println("prometheus.metrics.reporter.listener.enable=true");
+            writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:8080");
+            model.getAllowList().ifPresent(allowList -> writer.println("prometheus.metrics.reporter.allowlist=" + allowList));
             writer.println();
         }
 

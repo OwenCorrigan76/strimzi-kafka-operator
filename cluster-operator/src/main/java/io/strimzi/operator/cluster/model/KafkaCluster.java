@@ -1822,9 +1822,9 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
                         )
                         .withAuthorization(cluster, authorization)
                         .withCruiseControl(cluster, ccMetricsReporter, node.broker())
+                        .withStrimziMetricsReporter(strimziReporterMetrics)
                         .withTieredStorage(cluster, tieredStorage)
                         .withQuotas(cluster, quotas)
-                        .withStrimziMetricsReporter(strimziReporterMetrics)
                         .withUserConfiguration(configuration, node.broker() && ccMetricsReporter != null);
         withZooKeeperOrKRaftConfiguration(pool, node, builder);
         return builder.build().trim();
@@ -1892,7 +1892,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
      */
     public List<ConfigMap> generatePerBrokerConfigurationConfigMaps(MetricsAndLogging metricsAndLogging, Map<Integer, Map<String, String>> advertisedHostnames, Map<Integer, Map<String, String>> advertisedPorts) {
         String parsedMetrics = null;
-        if (jmxExporterMetrics != null) {
+        if (jmxExporterMetrics != null && jmxExporterMetrics.isEnabled()) {
             parsedMetrics = jmxExporterMetrics.metricsJson(reconciliation, metricsAndLogging.metricsCm());
         }
         String parsedLogging = logging().loggingConfiguration(reconciliation, metricsAndLogging.loggingCm());
