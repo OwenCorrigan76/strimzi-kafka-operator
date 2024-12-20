@@ -935,7 +935,7 @@ spec:
                       values:
                         type: object
                         properties:
-                          allowlist:
+                          allowList:
                             type: array
                             items:
                               type: string
@@ -2510,7 +2510,7 @@ spec:
                       values:
                         type: object
                         properties:
-                          allowlist:
+                          allowList:
                             type: array
                             items:
                               type: string
@@ -6513,7 +6513,7 @@ spec:
                       values:
                         type: object
                         properties:
-                          allowlist:
+                          allowList:
                             type: array
                             items:
                               type: string
