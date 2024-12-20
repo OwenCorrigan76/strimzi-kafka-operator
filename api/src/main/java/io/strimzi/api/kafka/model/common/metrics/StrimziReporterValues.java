@@ -29,12 +29,13 @@ import java.util.Map;
 @EqualsAndHashCode()
 @ToString
 public class StrimziReporterValues implements UnknownPropertyPreserving {
-
-    private final String regex = ".*";
-    private List<String> allowList = List.of(regex); // Default value
+    private static final String DEFAULT_REGEX = ".*";
+    private List<String> allowList = List.of(DEFAULT_REGEX);
     private Map<String, Object> additionalProperties;
 
-    @Description("Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.")
+    @Description("A comma separated list of regex patterns to specify the metrics to collect. Default:" +
+            DEFAULT_REGEX + " .")
+
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     public List<String> getAllowList() {
         return allowList;
