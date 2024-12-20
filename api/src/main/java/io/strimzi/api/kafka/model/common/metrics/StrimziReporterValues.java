@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Class representing the values section in the YAML.
+ * Strimzi Metrics Reporter configuration.
  */
 @Buildable(
         editableEnabled = false,
@@ -33,15 +33,12 @@ public class StrimziReporterValues implements UnknownPropertyPreserving {
     private List<String> allowList = List.of(DEFAULT_REGEX);
     private Map<String, Object> additionalProperties;
 
-    @Description("A comma separated list of regex patterns to specify the metrics to collect. Default:" +
-            DEFAULT_REGEX + " .")
-
+    @Description("A comma separated list of regex patterns to specify the metrics to collect. Default: `" + DEFAULT_REGEX + "`.")
     @JsonInclude(value = JsonInclude.Include.NON_NULL)
     public List<String> getAllowList() {
         return allowList;
     }
 
-    @Description("Set a list of allowed metrics for the Strimzi Metrics Reporter.")
     public void setAllowList(List<String> allowList) {
         this.allowList = allowList;
     }
