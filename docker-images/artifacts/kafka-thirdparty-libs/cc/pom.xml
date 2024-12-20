@@ -17,6 +17,7 @@
 
     <properties>
         <cruise-control.version>2.5.141</cruise-control.version>
+        <strimzi-metrics-reporter.version>0.1.0</strimzi-metrics-reporter.version>
     </properties>
 
     <repositories>
@@ -31,6 +32,11 @@
             <groupId>com.linkedin.cruisecontrol</groupId>
             <artifactId>cruise-control</artifactId>
             <version>${cruise-control.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.strimzi</groupId>
+            <artifactId>metrics-reporter</artifactId>
+            <version>${strimzi-metrics-reporter.version}</version>
         </dependency>
     </dependencies>
 </project>
