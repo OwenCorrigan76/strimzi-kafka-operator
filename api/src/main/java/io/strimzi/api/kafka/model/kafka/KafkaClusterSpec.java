@@ -54,6 +54,7 @@ import java.util.Map;
 @EqualsAndHashCode
 @ToString
 public class KafkaClusterSpec implements HasConfigurableMetrics, HasConfigurableLogging, HasJmxOptions, HasReadinessProbe, HasLivenessProbe, UnknownPropertyPreserving {
+    // TODO : we must add prefixes here to lockdown reporter configs - listener & port
     public static final String FORBIDDEN_PREFIXES = "listeners, advertised., broker., listener., host.name, port, "
             + "inter.broker.listener.name, sasl., ssl., security., password., log.dir, "
             + "zookeeper.connect, zookeeper.set.acl, zookeeper.ssl, zookeeper.clientCnxnSocket, authorizer., super.user, "
@@ -62,7 +63,6 @@ public class KafkaClusterSpec implements HasConfigurableMetrics, HasConfigurable
             + "client.quota.callback.static.kafka.admin., client.quota.callback.static.produce, client.quota.callback.static.fetch, "
             + "client.quota.callback.static.storage.per.volume.limit.min.available., client.quota.callback.static.excluded.principal.name.list";
 
-    // we must add prefixes here to lockdown reporter configs - listener & port
     public static final String FORBIDDEN_PREFIX_EXCEPTIONS = "zookeeper.connection.timeout.ms, sasl.server.max.receive.size, "
             + "ssl.cipher.suites, ssl.protocol, ssl.enabled.protocols, ssl.secure.random.implementation, "
             + "cruise.control.metrics.topic.num.partitions, cruise.control.metrics.topic.replication.factor, cruise.control.metrics.topic.retention.ms, "
