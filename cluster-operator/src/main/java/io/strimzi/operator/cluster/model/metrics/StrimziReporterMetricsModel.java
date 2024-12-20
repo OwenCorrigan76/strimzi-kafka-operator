@@ -6,7 +6,6 @@ package io.strimzi.operator.cluster.model.metrics;
 
 import io.strimzi.api.kafka.model.common.HasConfigurableMetrics;
 import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetrics;
-import io.strimzi.kafka.oauth.common.ConfigException;
 import io.strimzi.operator.common.model.InvalidResourceException;
 
 import java.util.ArrayList;
@@ -18,12 +17,12 @@ import java.util.regex.PatternSyntaxException;
 /**
  * Represents a model for components with configurable metrics using Strimzi Reporter
  */
-public class StrimziMetricsReporterModel {
+public class StrimziReporterMetricsModel {
 
     /**
      * Name of the Strimzi metrics port
      */
-    public static final String METRICS_PORT_NAME = "http-prometheus";
+    public static final String METRICS_PORT_NAME = "tcp-prometheus";
 
     /**
      * Number of the Strimzi metrics port
@@ -37,7 +36,7 @@ public class StrimziMetricsReporterModel {
      *
      * @param specSection StrimziReporterMetrics object containing the metrics configuration
      */
-    public StrimziMetricsReporterModel(HasConfigurableMetrics specSection) {
+    public StrimziReporterMetricsModel(HasConfigurableMetrics specSection) {
         if (specSection.getMetricsConfig() != null) {
             if (specSection.getMetricsConfig() instanceof StrimziReporterMetrics spec) {
                 validate(spec);
@@ -46,7 +45,7 @@ public class StrimziMetricsReporterModel {
                         spec.getValues().getAllowList() != null
                         ? spec.getValues().getAllowList() : null;
             } else {
-                throw new ConfigException("Unsupported metrics type " + specSection.getMetricsConfig().getType());
+                throw new InvalidResourceException("Unsupported metrics type " + specSection.getMetricsConfig().getType());
             }
         } else {
             this.isEnabled = false;
@@ -69,13 +68,13 @@ public class StrimziMetricsReporterModel {
     /* test */  static void validate(StrimziReporterMetrics spec) {
         List<String> errors = new ArrayList<>();
         if (spec.getValues() != null && spec.getValues().getAllowList() != null) {
-            if (spec.getValues().getAllowList() .isEmpty()) {
+            if (spec.getValues().getAllowList().isEmpty()) {
                 errors.add("Allowlist should contain at least one element");
             }
             for (String regex : spec.getValues().getAllowList()) {
                 try {
                     Pattern.compile(regex);
-                }       catch (PatternSyntaxException e) {
+                } catch (PatternSyntaxException e) {
                     errors.add(String.format("Invalid regex: %s, %s", regex, e.getDescription()));
                 }
             }
