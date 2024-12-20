@@ -474,7 +474,7 @@ spec:
                         type: array
                         items:
                           type: string
-                        description: Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.
+                        description: A comma separated list of regex patterns to specify the metrics to collect. Default:.* .
                     description: Configuration values for the Strimzi Metrics Reporter.
                 required:
                 - type
