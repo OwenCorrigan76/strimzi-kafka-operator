@@ -1958,8 +1958,7 @@ public class KafkaClusterTest {
     @ParallelTest
     public void testMetricsParsingNoMetrics() {
         assertThat(KC.metrics(), is(nullValue()));
-        assertThat(KC.metrics().getConfigMapName(), is(nullValue()));
-        assertThat(KC.metrics().getConfigMapKey(), is(nullValue()));
+        assertThat(KC.strimziReporterMetrics(), is(nullValue()));
     }
 
     @ParallelTest

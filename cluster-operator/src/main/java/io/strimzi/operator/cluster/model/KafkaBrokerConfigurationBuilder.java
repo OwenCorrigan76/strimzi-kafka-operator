@@ -30,6 +30,7 @@ import io.strimzi.api.kafka.model.kafka.tieredstorage.TieredStorageCustom;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.server.plain.ServerPlainConfig;
 import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
+import io.strimzi.operator.cluster.model.metrics.StrimziReporterMetricsModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.cruisecontrol.CruiseControlConfigurationParameters;
 
@@ -59,7 +60,21 @@ public class KafkaBrokerConfigurationBuilder {
     // Names of environment variables expanded through config providers inside the Kafka node
     private final static String PLACEHOLDER_CERT_STORE_PASSWORD = "${strimzienv:CERTS_STORE_PASSWORD}";
     private final static String PLACEHOLDER_OAUTH_CLIENT_SECRET = "${strimzienv:STRIMZI_%s_OAUTH_CLIENT_SECRET}";
+    // Defaults
+    /**
+     * Default value for enabling metrics reporter
+     */
+    public static final boolean PROMETHEUS_METRICS_REPORTER_LISTENER_ENABLE = false;
 
+    /**
+     * Default listener name for the metrics reporter
+     */
+    public static final String PROMETHEUS_METRICS_REPORTER_LISTENER = "http://8080";
+
+    /**
+     * Default allowlist name for the metrics reporter
+     */
+    public static final List<String> PROMETHEUS_METRICS_REPORTER_ALLOWLIST = List.of(".*");
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
     private final Reconciliation reconciliation;
@@ -139,6 +154,28 @@ public class KafkaBrokerConfigurationBuilder {
                 writer.println(CruiseControlConfigurationParameters.METRICS_TOPIC_MIN_ISR + "=" + ccMetricsReporter.minInSyncReplicas());
             }
 
+            writer.println();
+        }
+
+        return this;
+    }
+    /**
+     * Configures the Strimzi Metrics Reporter. It is set only if user enabled Strimzi Metrics Reporter.
+     *
+     * @param strimziMetricsReporter     Cruise Control Metrics Reporter configuration
+     *
+     * @return Returns the builder instance
+     */
+    public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(StrimziReporterMetricsModel strimziMetricsReporter)   {
+        if (strimziMetricsReporter != null && strimziMetricsReporter.isEnabled()) {
+            printSectionHeader("Strimzi Metrics Reporter configuration");
+            writer.println(PROMETHEUS_METRICS_REPORTER_LISTENER_ENABLE + "=false");
+            writer.println(PROMETHEUS_METRICS_REPORTER_LISTENER + "=http://8080");
+            //writer.println(PROMETHEUS_METRICS_REPORTER_ALLOWLIST + "=.*");
+
+            if (strimziMetricsReporter != null && strimziMetricsReporter.isEnabled()) {
+                writer.println(PROMETHEUS_METRICS_REPORTER_ALLOWLIST + "=" + strimziMetricsReporter.getAllowList());
+            }
             writer.println();
         }
 

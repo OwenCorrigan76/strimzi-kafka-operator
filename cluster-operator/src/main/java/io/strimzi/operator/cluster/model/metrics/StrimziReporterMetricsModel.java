@@ -38,12 +38,12 @@ public class StrimziReporterMetricsModel {
      */
     public StrimziReporterMetricsModel(HasConfigurableMetrics specSection) {
         if (specSection.getMetricsConfig() != null) {
-            if (specSection.getMetricsConfig() instanceof StrimziReporterMetrics spec) {
-                validate(spec);
+            if (specSection.getMetricsConfig() instanceof StrimziReporterMetrics config) {
+                validate(config);
                 this.isEnabled = true;
-                this.allowList = spec.getValues() != null &&
-                        spec.getValues().getAllowList() != null
-                        ? spec.getValues().getAllowList() : null;
+                this.allowList = config.getValues() != null &&
+                        config.getValues().getAllowList() != null
+                        ? config.getValues().getAllowList() : null;
             } else {
                 throw new InvalidResourceException("Unsupported metrics type " + specSection.getMetricsConfig().getType());
             }
@@ -63,15 +63,15 @@ public class StrimziReporterMetricsModel {
     /**
      * Validates the Strimzi Reporter Metrics configuration
      *
-     * @param spec StrimziReporterMetrics configuration to validate
+     * @param config StrimziReporterMetrics configuration to validate
      */
-    /* test */  static void validate(StrimziReporterMetrics spec) {
+    /* test */  static void validate(StrimziReporterMetrics config) {
         List<String> errors = new ArrayList<>();
-        if (spec.getValues() != null && spec.getValues().getAllowList() != null) {
-            if (spec.getValues().getAllowList().isEmpty()) {
+        if (config.getValues() != null && config.getValues().getAllowList() != null) {
+            if (config.getValues().getAllowList().isEmpty()) {
                 errors.add("Allowlist should contain at least one element");
             }
-            for (String regex : spec.getValues().getAllowList()) {
+            for (String regex : config.getValues().getAllowList()) {
                 try {
                     Pattern.compile(regex);
                 } catch (PatternSyntaxException e) {
