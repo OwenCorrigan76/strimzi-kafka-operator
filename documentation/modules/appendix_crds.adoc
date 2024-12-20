@@ -1075,7 +1075,7 @@ Used in: xref:type-StrimziReporterMetrics-{context}[`StrimziReporterMetrics`]
 [cols="2,2,3a",options="header"]
 |====
 |Property |Property type |Description
-|allowlist
+|allowList
 |string array
 |Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.
 |====

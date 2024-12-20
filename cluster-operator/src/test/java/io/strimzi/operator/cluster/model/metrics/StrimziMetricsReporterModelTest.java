@@ -49,7 +49,7 @@ public class StrimziMetricsReporterModelTest {
     @Test
     public void testValidAllowlist() {
         StrimziReporterValues values = new StrimziReporterValues();
-        values.setAllowlist(List.of("kafka_log.*", "kafka_network.*"));
+        values.setAllowList(List.of("kafka_log.*", "kafka_network.*"));
 
         List<String> allowlist = values.getAllowList();
         Assertions.assertFalse(allowlist.isEmpty());
@@ -61,18 +61,18 @@ public class StrimziMetricsReporterModelTest {
     public void testValidation() {
         // if I pass valid list, doesn't throw error
         Assertions.assertDoesNotThrow(() -> StrimziMetricsReporterModel.validate(new StrimziReporterMetricsBuilder()
-                        .withNewValues()
-                   // .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
+                .withNewValues()
+                .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
                 .endValues()
                 .build())
         );
 
         InvalidResourceException ise0 = Assertions.assertThrows(InvalidResourceException.class, () -> StrimziMetricsReporterModel.validate(
                 new StrimziReporterMetricsBuilder()
-                .withNewValues()
-                //    .withAllowList(List.of())
-                .endValues()
-                .build())
+                        .withNewValues()
+                        .withAllowList(List.of())
+                        .endValues()
+                        .build())
         );
         assertThat(ise0.getMessage(), is("Metrics configuration is invalid: [Allowlist should contain at least one element]"));
 
@@ -80,7 +80,7 @@ public class StrimziMetricsReporterModelTest {
         InvalidResourceException ise1 = Assertions.assertThrows(InvalidResourceException.class, () -> StrimziMetricsReporterModel.validate(
                 new StrimziReporterMetricsBuilder()
                         .withNewValues()
-               //         .withAllowList(List.of("kafka_network.*", "kafka_log.***", "[a+"))
+                        .withAllowList(List.of("kafka_network.*", "kafka_log.***", "[a+"))
                         .endValues()
                         .build())
         );
