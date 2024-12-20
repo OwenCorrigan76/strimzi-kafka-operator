@@ -23,7 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class MetricsModelTest {
+public class JmxExporterMetricsModelTest {
     @Test
     public void testDisabled()   {
         MetricsModel metrics = new MetricsModel(new KafkaConnectSpecBuilder().build());

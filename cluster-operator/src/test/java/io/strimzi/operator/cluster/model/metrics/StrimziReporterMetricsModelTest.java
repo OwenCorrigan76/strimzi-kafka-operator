@@ -6,7 +6,6 @@ package io.strimzi.operator.cluster.model.metrics;
 
 import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetrics;
 import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetricsBuilder;
-import io.strimzi.api.kafka.model.connect.KafkaConnectSpecBuilder;
 import io.strimzi.api.kafka.model.kafka.KafkaClusterSpecBuilder;
 import io.strimzi.operator.common.model.InvalidResourceException;
 import org.junit.jupiter.api.Assertions;
@@ -18,13 +17,14 @@ import java.util.Optional;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StrimziReporterMetricsModelTest {
 
     @Test
     public void testDisabled() {
-        StrimziReporterMetricsModel metrics = new StrimziReporterMetricsModel(new KafkaConnectSpecBuilder().build());
+        StrimziReporterMetricsModel metrics = new StrimziReporterMetricsModel(new KafkaClusterSpecBuilder().build());
 
         assertThat(metrics.isEnabled(), is(false));
         assertThat(metrics.getAllowList(), is(Optional.empty()));
@@ -54,7 +54,7 @@ public class StrimziReporterMetricsModelTest {
                 .build())
         );
 
-        InvalidResourceException ise0 = Assertions.assertThrows(InvalidResourceException.class, () -> StrimziReporterMetricsModel.validate(
+        InvalidResourceException ise0 = assertThrows(InvalidResourceException.class, () -> StrimziReporterMetricsModel.validate(
                 new StrimziReporterMetricsBuilder()
                         .withNewValues()
                         .withAllowList(List.of())
