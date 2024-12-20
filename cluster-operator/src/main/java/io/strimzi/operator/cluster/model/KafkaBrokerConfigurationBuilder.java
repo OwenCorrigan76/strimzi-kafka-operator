@@ -159,7 +159,7 @@ public class KafkaBrokerConfigurationBuilder {
             // Look at withUserConfiguration
             writer.println("metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
             writer.println("prometheus.metrics.reporter.listener.enable=true");
-            writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:9094");
+            writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:" + StrimziReporterMetricsModel.METRICS_PORT);
             model.getAllowList().ifPresent(allowList -> writer.println("prometheus.metrics.reporter.allowlist=" + allowList));
             writer.println();
         }
