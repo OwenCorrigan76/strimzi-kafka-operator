@@ -1077,7 +1077,7 @@ Used in: xref:type-StrimziReporterMetrics-{context}[`StrimziReporterMetrics`]
 |Property |Property type |Description
 |allowList
 |string array
-|Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.
+|A comma separated list of regex patterns to specify the metrics to collect. Default:.* .
 |====
 
 [id='type-InlineLogging-{context}']

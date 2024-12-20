@@ -40,10 +40,8 @@ public class MetricsModelTest {
                     .withConfigMapKeyRef(new ConfigMapKeySelector("my-key", "my-name", false))
                 .endValueFrom()
                 .build();
-        System.out.println("MetricsConfig:" + metricsConfig);
 
         MetricsModel metrics = new MetricsModel(new KafkaConnectSpecBuilder().withMetricsConfig(metricsConfig).build());
-        System.out.println("Metrics:" + metrics.isEnabled());
 
         assertThat(metrics.isEnabled(), is(true));
         assertThat(metrics.getConfigMapName(), is("my-name"));
@@ -56,7 +54,7 @@ public class MetricsModelTest {
     public void testProblemWithConfigMap()   {
         MetricsConfig metricsConfig = new JmxPrometheusExporterMetricsBuilder()
                 .withNewValueFrom()
-                .withConfigMapKeyRef(new ConfigMapKeySelector("my-key", "my-name", false))
+                    .withConfigMapKeyRef(new ConfigMapKeySelector("my-key", "my-name", false))
                 .endValueFrom()
                 .build();
 
