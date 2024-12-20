@@ -24,23 +24,24 @@ import java.util.Map;
         editableEnabled = false,
         builderPackage = Constants.FABRIC8_KUBERNETES_API
 )
-@JsonPropertyOrder({"allowList"})
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@EqualsAndHashCode(callSuper = false, onlyExplicitlyIncluded = true)
-@ToString(callSuper = true)
+@JsonPropertyOrder({"allowList"})
+@EqualsAndHashCode()
+@ToString
 public class StrimziReporterValues implements UnknownPropertyPreserving {
 
-    private Map<String, Object> additionalProperties;
     private final String regex = ".*";
     private List<String> allowList = List.of(regex); // Default value
+    private Map<String, Object> additionalProperties = new HashMap<>();
 
     @Description("Get a list of only non-null allowed metrics for the Strimzi Metrics Reporter.")
+    @JsonInclude(value = JsonInclude.Include.NON_NULL)
     public List<String> getAllowList() {
         return allowList;
     }
 
     @Description("Set a list of allowed metrics for the Strimzi Metrics Reporter.")
-    public void setAllowlist(List<String> allowList) {
+    public void setAllowList(List<String> allowList) {
         this.allowList = allowList;
     }
 
@@ -56,24 +57,4 @@ public class StrimziReporterValues implements UnknownPropertyPreserving {
         }
         this.additionalProperties.put(name, value);
     }
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        StrimziReporterValues that = (StrimziReporterValues) o;
-
-        if (!regex.equals(that.regex)) return false;
-        if (!allowList.equals(that.allowList)) return false;
-        return additionalProperties != null ? additionalProperties.equals(that.additionalProperties) : that.additionalProperties == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = regex.hashCode();
-        result = 31 * result + (allowList != null ? allowList.hashCode() : 0);
-        result = 31 * result + (additionalProperties != null ? additionalProperties.hashCode() : 0);
-        return result;
-    }
-
 }
