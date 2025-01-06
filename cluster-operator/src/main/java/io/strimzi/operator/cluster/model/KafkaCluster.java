@@ -1833,7 +1833,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
                 .withCruiseControl(cluster, ccMetricsReporter, node.broker())
                 .withTieredStorage(cluster, tieredStorage)
                 .withQuotas(cluster, quotas)
-                .withUserConfiguration(configuration, node.broker() && ccMetricsReporter != null)
+                .withUserConfiguration(configuration, node.broker() && ccMetricsReporter != null, node.broker() && strimziReporterMetrics != null)
                 .build()
                 .trim();
     }

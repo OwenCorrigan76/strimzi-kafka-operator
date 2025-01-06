@@ -63,6 +63,14 @@ public class KafkaBrokerConfigurationBuilder {
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
     private final Reconciliation reconciliation;
+    /**
+     * The configuration field name for Kafka metric reporters.
+     */
+    public static final String KAFKA_METRIC_REPORTERS_CONFIG_FIELD = "metric.reporters";
+    /**
+     * The class name for the Strimzi Metrics Reporter.
+     */
+    public static final String STRIMZI_METRIC_REPORTER = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
     private final NodeRef node;
 
     /**
@@ -809,28 +817,33 @@ public class KafkaBrokerConfigurationBuilder {
     /**
      * Configures the configuration options passed by the user in the Kafka CR.
      *
-     * @param userConfig                The User configuration - Kafka broker configuration options specified by the user in the Kafka custom resource
-     * @param injectCcMetricsReporter   Inject the Cruise Control Metrics Reporter into the configuration
+     * @param userConfig                     The User configuration - Kafka broker configuration options specified by the user in the Kafka custom resource
+     * @param injectCcMetricsReporter        Inject the Cruise Control Metrics Reporter into the configuration
+     * @param injectStrimziMetricsReporter   Inject the Strimzi Metrics Reporter into the configuration
      *
      * @return Returns the builder instance
      */
-    public KafkaBrokerConfigurationBuilder withUserConfiguration(KafkaConfiguration userConfig, boolean injectCcMetricsReporter)  {
+    public KafkaBrokerConfigurationBuilder withUserConfiguration(KafkaConfiguration userConfig, boolean injectCcMetricsReporter, boolean injectStrimziMetricsReporter)  {
         if (userConfig != null && !userConfig.getConfiguration().isEmpty()) {
-            // We have to create a copy of the configuration before we modify it
+            // We have to create a copy of the configuration before we modify it, to avoid modifying the original input.
             userConfig = new KafkaConfiguration(userConfig);
 
             // Configure the configuration providers => we have to inject the Strimzi ones
             configProviders(userConfig);
 
-            if (injectCcMetricsReporter)  {
-                // We configure the Cruise Control Metrics Reporter is needed
-                if (userConfig.getConfigOption(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD) != null) {
-                    if (!userConfig.getConfigOption(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD).contains(CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER)) {
-                        userConfig.setConfigOption(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD, userConfig.getConfigOption(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD) + "," + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
-                    }
-                } else {
-                    userConfig.setConfigOption(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD, CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
-                }
+            // Handle all permutations for metric.reporters
+            String metricReporters = userConfig.getConfigOption(KAFKA_METRIC_REPORTERS_CONFIG_FIELD);
+
+            // If the injectCcMetricsReporter / injectStrimziMetricsReporter flag is set to true, it is appended to the list of metric reporters
+            if (injectCcMetricsReporter) {
+                metricReporters = appendMetricReporter(metricReporters, CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
+            }
+            if (injectStrimziMetricsReporter) {
+                metricReporters = appendMetricReporter(metricReporters, STRIMZI_METRIC_REPORTER);
+            }
+            if (metricReporters != null) {
+                // update the userConfig with the new list of metric reporters
+                userConfig.setConfigOption(KAFKA_METRIC_REPORTERS_CONFIG_FIELD, metricReporters);
             }
 
             printSectionHeader("User provided configuration");
@@ -840,16 +853,39 @@ public class KafkaBrokerConfigurationBuilder {
             // Configure the configuration providers => we have to inject the Strimzi ones
             configProviders(userConfig);
 
-            if (injectCcMetricsReporter) {
-                // There is no user provided configuration. But we still need to inject the Cruise Control Metrics Reporter
-                printSectionHeader("Cruise Control Metrics Reporter");
-                writer.println(CruiseControlMetricsReporter.KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
+            // There is no user provided configuration
+            if (injectCcMetricsReporter || injectStrimziMetricsReporter) {
+                printSectionHeader("CruiseControl Metrics Reporters and Strimzi Metrics Reporters");
+                String metricReporters = null;
+                if (injectCcMetricsReporter) {
+                    metricReporters = CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER;
+                }
+                if (injectStrimziMetricsReporter) {
+                    metricReporters = appendMetricReporter(metricReporters, STRIMZI_METRIC_REPORTER);
+                }
+                writer.println(KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + metricReporters);
                 writer.println();
             }
         }
 
         return this;
     }
+
+    /**
+     * Appends a new metric reporter to the existing list of metric reporters.
+     *
+     * @param existingReporters The existing list of metric reporters, as a comma-separated string.
+     * @param newReporter The new metric reporter to add to the list.
+     * @return A comma-separated string containing the existing metric reporters and the new metric reporter.
+     */
+    private String appendMetricReporter(String existingReporters, String newReporter) {
+        if (existingReporters == null || existingReporters.isEmpty()) {
+            return newReporter;
+        } else {
+            return existingReporters + "," + newReporter;
+        }
+    }
+
 
     /**
      * Configures the log dirs used by the Kafka brokers. The log dirs contain a broker ID in the path. This is passed
