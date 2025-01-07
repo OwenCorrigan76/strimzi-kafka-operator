@@ -31,7 +31,10 @@ import java.util.Map;
 public abstract class MetricsConfig implements UnknownPropertyPreserving {
     private Map<String, Object> additionalProperties;
 
-    @Description("Metrics type. Currently supports 'strimziReporterMetrics' and 'jmxPrometheusExporter'.")
+    @Description("Metrics type. " +
+            "The supported types are `jmxPrometheusExporter` and `strimziMetricsReporter`. " +
+            "Type `jmxPrometheusExporter` uses the Prometheus JMX Exporter to expose Kafka JMX metrics in Prometheus format through an HTTP endpoint. " +
+            "Type `strimziMetricsReporter` uses the Strimzi Metrics Reporter to directly expose Kafka metrics in Prometheus format through an HTTP endpoint.")
     public abstract String getType();
 
     @Override
