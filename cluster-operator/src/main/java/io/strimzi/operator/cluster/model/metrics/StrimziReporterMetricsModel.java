@@ -34,18 +34,18 @@ public class StrimziReporterMetricsModel {
     /**
      * Constructs the StrimziMetricsReporterModel for managing configurable metrics with Strimzi Reporter
      *
-     * @param specSection StrimziReporterMetrics object containing the metrics configuration
+     * @param spec StrimziReporterMetrics object containing the metrics configuration
      */
-    public StrimziReporterMetricsModel(HasConfigurableMetrics specSection) {
-        if (specSection.getMetricsConfig() != null) {
-            if (specSection.getMetricsConfig() instanceof StrimziReporterMetrics config) {
+    public StrimziReporterMetricsModel(HasConfigurableMetrics spec) {
+        if (spec.getMetricsConfig() != null) {
+            if (spec.getMetricsConfig() instanceof StrimziReporterMetrics config) {
                 validate(config);
                 this.isEnabled = true;
                 this.allowList = config.getValues() != null &&
                         config.getValues().getAllowList() != null
                         ? config.getValues().getAllowList() : null;
             } else {
-                throw new InvalidResourceException("Unsupported metrics type " + specSection.getMetricsConfig().getType());
+                throw new InvalidResourceException("Unsupported metrics type " + spec.getMetricsConfig().getType());
             }
         } else {
             this.isEnabled = false;
@@ -65,7 +65,7 @@ public class StrimziReporterMetricsModel {
      *
      * @param config StrimziReporterMetrics configuration to validate
      */
-    /* test */  static void validate(StrimziReporterMetrics config) {
+    /* test */ static void validate(StrimziReporterMetrics config) {
         List<String> errors = new ArrayList<>();
         if (config.getValues() != null && config.getValues().getAllowList() != null) {
             if (config.getValues().getAllowList().isEmpty()) {
