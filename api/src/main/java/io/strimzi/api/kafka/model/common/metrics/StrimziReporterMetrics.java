@@ -5,7 +5,6 @@
 package io.strimzi.api.kafka.model.common.metrics;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import io.strimzi.api.kafka.model.common.Constants;
 import io.strimzi.crdgenerator.annotations.Description;
@@ -28,9 +27,14 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class StrimziReporterMetrics extends MetricsConfig {
     public static final String TYPE_STRIMZI_REPORTER_METRICS = "strimziMetricsReporter";
+    private StrimziReporterValues values;
 
-    private StrimziMetricsReporterValues values;
-
+    /**
+     * Returns the type of the metrics reporter.
+     * Must be "strimziMetricsReporter".
+     *
+     * @return the type of the metrics reporter
+     */
     @Description("Must be `" + TYPE_STRIMZI_REPORTER_METRICS + "`")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Override
@@ -38,9 +42,22 @@ public class StrimziReporterMetrics extends MetricsConfig {
         return TYPE_STRIMZI_REPORTER_METRICS;
     }
 
-    @Description("List configuration values for Strimzi Metrics Reporter.")
-    @JsonProperty(required = true)
-    public StrimziMetricsReporterValues getValues() {
+    /**
+     * Returns the configuration values for Strimzi Metrics Reporter.
+     *
+     * @return the configuration values
+     */
+    @Description("Configuration values for the Strimzi Metrics Reporter.")
+    public StrimziReporterValues getValues() {
         return values;
+    }
+
+    /**
+     * Sets the configuration values for Strimzi Metrics Reporter.
+     *
+     * @param values the configuration values to set
+     */
+    public void setValues(StrimziReporterValues values) {
+        this.values = values;
     }
 }
