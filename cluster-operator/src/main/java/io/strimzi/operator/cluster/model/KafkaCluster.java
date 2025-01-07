@@ -1319,6 +1319,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
             }
         }
 
+        // Metrics port is enabled on all node types regardless their role
         if (jmxExporterMetrics != null && jmxExporterMetrics.isEnabled()) {
             ports.add(ContainerUtils.createContainerPort(MetricsModel.METRICS_PORT_NAME, MetricsModel.METRICS_PORT));
         } else if (strimziReporterMetrics != null && strimziReporterMetrics.isEnabled()) {
@@ -1638,7 +1639,6 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
         List<EnvVar> varList = new ArrayList<>();
         String jmxMetricsEnabled = jmxExporterMetrics != null && jmxExporterMetrics.isEnabled() ? Boolean.TRUE.toString() : Boolean.FALSE.toString();
         varList.add(ContainerUtils.createEnvVar(ENV_VAR_KAFKA_JMX_EXPORTER_ENABLED, jmxMetricsEnabled));
-
         varList.add(ContainerUtils.createEnvVar(ENV_VAR_STRIMZI_KAFKA_GC_LOG_ENABLED, String.valueOf(pool.gcLoggingEnabled)));
 
         JvmOptionUtils.heapOptions(varList, 50, 5L * 1024L * 1024L * 1024L, pool.jvmOptions, pool.resources);
@@ -1749,7 +1749,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
             rules.add(NetworkPolicyUtils.createIngressRule(listener.getPort(), listener.getNetworkPolicyPeers()));
         }
 
-        // If not null, the Metrics rules are either jmxExporterMetrics or strimziReporterMetrics
+        // The Metrics port (if enabled) is opened to all by default
         if (jmxExporterMetrics != null && jmxExporterMetrics.isEnabled()) {
             rules.add(NetworkPolicyUtils.createIngressRule(MetricsModel.METRICS_PORT, List.of()));
         } else if (strimziReporterMetrics != null && strimziReporterMetrics.isEnabled()) {
