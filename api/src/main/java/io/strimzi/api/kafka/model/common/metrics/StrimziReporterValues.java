@@ -30,6 +30,7 @@ import java.util.Map;
 @ToString
 public class StrimziReporterValues implements UnknownPropertyPreserving {
     private static final String DEFAULT_REGEX = ".*";
+
     private List<String> allowList = List.of(DEFAULT_REGEX);
     private Map<String, Object> additionalProperties;
 
