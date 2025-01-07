@@ -1831,6 +1831,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
                 )
                 .withAuthorization(cluster, authorization)
                 .withCruiseControl(cluster, ccMetricsReporter, node.broker())
+                .withStrimziMetricsReporter(strimziReporterMetrics)
                 .withTieredStorage(cluster, tieredStorage)
                 .withQuotas(cluster, quotas)
                 .withUserConfiguration(configuration, node.broker() && ccMetricsReporter != null)
