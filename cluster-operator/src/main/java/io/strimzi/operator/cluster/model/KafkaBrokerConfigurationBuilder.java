@@ -48,6 +48,9 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static io.strimzi.operator.cluster.model.KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD;
+import static io.strimzi.operator.cluster.model.metrics.StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER;
+
 /**
  * This class is used to generate the broker configuration template. The template is later passed using a config map to
  * the broker pods. The scripts in the container images will fill in the variables in the template and use the
@@ -63,17 +66,6 @@ public class KafkaBrokerConfigurationBuilder {
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
     private final Reconciliation reconciliation;
-
-    /**
-     * The configuration field name for Kafka metric reporters.
-     */
-    public static final String KAFKA_METRIC_REPORTERS_CONFIG_FIELD = "metric.reporters";
-
-    /**
-     * The class name for the Strimzi Metrics Reporter.
-     */
-    public static final String STRIMZI_METRIC_REPORTER = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
-
     private final NodeRef node;
 
     /**
@@ -155,9 +147,6 @@ public class KafkaBrokerConfigurationBuilder {
         if (model != null && model.isEnabled()) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
             writer.println("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
-            // ** This is not final.... return to this because we can have other user added plugins, also CC etc. Setting for now so we can manually test!!
-            // Look at withUserConfiguration
-            writer.println("metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
             writer.println("prometheus.metrics.reporter.listener.enable=true");
             writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:" + StrimziReporterMetricsModel.METRICS_PORT);
             model.getAllowList().ifPresent(allowList -> writer.println("prometheus.metrics.reporter.allowlist=" + allowList));
@@ -834,7 +823,7 @@ public class KafkaBrokerConfigurationBuilder {
             // Configure the configuration providers => we have to inject the Strimzi ones
             configProviders(userConfig);
 
-            // Handle all permutations for metric.reporters
+            // Handle all combinations of metric.reporters
             String metricReporters = userConfig.getConfigOption(KAFKA_METRIC_REPORTERS_CONFIG_FIELD);
 
             // If the injectCcMetricsReporter / injectStrimziMetricsReporter flag is set to true, it is appended to the list of metric reporters
@@ -842,7 +831,7 @@ public class KafkaBrokerConfigurationBuilder {
                 metricReporters = appendMetricReporter(metricReporters, CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
             }
             if (injectStrimziMetricsReporter) {
-                metricReporters = appendMetricReporter(metricReporters, STRIMZI_METRIC_REPORTER);
+                metricReporters = appendMetricReporter(metricReporters, KAFKA_PROMETHEUS_METRICS_REPORTER);
             }
             if (metricReporters != null) {
                 // update the userConfig with the new list of metric reporters
@@ -864,7 +853,7 @@ public class KafkaBrokerConfigurationBuilder {
                     metricReporters = CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER;
                 }
                 if (injectStrimziMetricsReporter) {
-                    metricReporters = appendMetricReporter(metricReporters, STRIMZI_METRIC_REPORTER);
+                    metricReporters = appendMetricReporter(metricReporters, KAFKA_PROMETHEUS_METRICS_REPORTER);
                 }
                 writer.println(KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + metricReporters);
                 writer.println();
