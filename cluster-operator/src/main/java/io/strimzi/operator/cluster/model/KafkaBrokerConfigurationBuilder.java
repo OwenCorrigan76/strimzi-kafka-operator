@@ -48,9 +48,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static io.strimzi.operator.cluster.model.KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD;
-import static io.strimzi.operator.cluster.model.metrics.StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER;
-
 /**
  * This class is used to generate the broker configuration template. The template is later passed using a config map to
  * the broker pods. The scripts in the container images will fill in the variables in the template and use the
@@ -824,18 +821,18 @@ public class KafkaBrokerConfigurationBuilder {
             configProviders(userConfig);
 
             // Handle all combinations of metric.reporters
-            String metricReporters = userConfig.getConfigOption(KAFKA_METRIC_REPORTERS_CONFIG_FIELD);
+            String metricReporters = userConfig.getConfigOption(KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD);
 
             // If the injectCcMetricsReporter / injectStrimziMetricsReporter flag is set to true, it is appended to the list of metric reporters
             if (injectCcMetricsReporter) {
                 metricReporters = appendMetricReporter(metricReporters, CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
             }
             if (injectStrimziMetricsReporter) {
-                metricReporters = appendMetricReporter(metricReporters, KAFKA_PROMETHEUS_METRICS_REPORTER);
+                metricReporters = appendMetricReporter(metricReporters, StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
             }
             if (metricReporters != null) {
                 // update the userConfig with the new list of metric reporters
-                userConfig.setConfigOption(KAFKA_METRIC_REPORTERS_CONFIG_FIELD, metricReporters);
+                userConfig.setConfigOption(KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD, metricReporters);
             }
 
             printSectionHeader("User provided configuration");
@@ -853,9 +850,9 @@ public class KafkaBrokerConfigurationBuilder {
                     metricReporters = CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER;
                 }
                 if (injectStrimziMetricsReporter) {
-                    metricReporters = appendMetricReporter(metricReporters, KAFKA_PROMETHEUS_METRICS_REPORTER);
+                    metricReporters = appendMetricReporter(metricReporters, StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
                 }
-                writer.println(KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + metricReporters);
+                writer.println(KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + metricReporters);
                 writer.println();
             }
         }
