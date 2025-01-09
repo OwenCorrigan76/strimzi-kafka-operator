@@ -19,9 +19,9 @@ import java.util.regex.PatternSyntaxException;
  */
 public class StrimziReporterMetricsModel {
     /**
-     * Fully Qualified Class Name (FQCN) of the Strimzi Kafka Prometheus Metrics Reporter.
+     * Fully Qualified Class Name of the Strimzi Kafka Prometheus Metrics Reporter.
      */
-    public static final String METRICS_REPORTER_FQCN = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
+    public static final String KAFKA_PROMETHEUS_METRICS_REPORTER = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
 
     /**
      * Name of the Strimzi metrics port
