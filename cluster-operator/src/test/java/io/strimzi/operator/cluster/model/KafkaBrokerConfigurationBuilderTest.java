@@ -32,6 +32,7 @@ import io.strimzi.api.kafka.model.kafka.tieredstorage.TieredStorageCustom;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.operator.cluster.KafkaVersionTestUtils;
 import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
+import io.strimzi.operator.cluster.model.metrics.StrimziReporterMetricsModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.cruisecontrol.CruiseControlConfigurationParameters;
 import io.strimzi.test.annotations.ParallelSuite;
@@ -467,7 +468,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     @ParallelTest
     public void testNullUserConfiguration()  {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(null, false)
+                .withUserConfiguration(null, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -483,7 +484,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     @ParallelTest
     public void testNullUserConfigurationAndCCReporter()  {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(null, true)
+                .withUserConfiguration(null, true, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -498,12 +499,47 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
+    public void testNullUserConfigurationWithStrimziMetricReporter()  {
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+            .withUserConfiguration(null, false, true)
+            .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "metric.reporters=" + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+    }
+
+    @ParallelTest
+    public void testNullUserConfigurationWithCcAndStrimziMetricReporters()  {
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+            .withUserConfiguration(null, true, true)
+            .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "metric.reporters=" + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER
+                        + "," + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+    }
+
+    @ParallelTest
     public void testEmptyUserConfiguration()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(kafkaConfiguration, false)
+                .withUserConfiguration(kafkaConfiguration, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -527,7 +563,7 @@ public class KafkaBrokerConfigurationBuilderTest {
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(kafkaConfiguration, false)
+                .withUserConfiguration(kafkaConfiguration, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -549,12 +585,11 @@ public class KafkaBrokerConfigurationBuilderTest {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("config.providers", "env");
         userConfiguration.put("config.providers.env.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
-
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         // Broker
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(kafkaConfiguration, false)
+                .withUserConfiguration(kafkaConfiguration, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -569,7 +604,7 @@ public class KafkaBrokerConfigurationBuilderTest {
 
         // Controller
         configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, new NodeRef("my-cluster-kafka-3", 3, "kafka", true, false))
-                .withUserConfiguration(kafkaConfiguration, false)
+                .withUserConfiguration(kafkaConfiguration, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=3",
@@ -590,7 +625,7 @@ public class KafkaBrokerConfigurationBuilderTest {
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(kafkaConfiguration, true)
+                .withUserConfiguration(kafkaConfiguration, true, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -616,7 +651,7 @@ public class KafkaBrokerConfigurationBuilderTest {
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(kafkaConfiguration, true)
+                .withUserConfiguration(kafkaConfiguration, true, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -628,6 +663,48 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
                 "metric.reporters=my.domain.CustomMetricReporter,com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"));
+    }
+
+    @ParallelTest
+    public void testUserConfigurationWithStrimziAndOtherMetricReporters()  {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        userConfiguration.put("metric.reporters", "my.domain.CustomMetricReporter");
+        KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+            .withUserConfiguration(kafkaConfiguration, false, true)
+            .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "metric.reporters=my.domain.CustomMetricReporter," + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+    }
+
+    @ParallelTest
+    public void testUserConfigurationWithCcAndStrimziAndOtherMetricReporters()  {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        userConfiguration.put("metric.reporters", "my.domain.CustomMetricReporter");
+        KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+            .withUserConfiguration(kafkaConfiguration, true, true)
+            .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "metric.reporters=my.domain.CustomMetricReporter,"
+                        + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER + ","
+                        + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
     }
 
     @ParallelTest
