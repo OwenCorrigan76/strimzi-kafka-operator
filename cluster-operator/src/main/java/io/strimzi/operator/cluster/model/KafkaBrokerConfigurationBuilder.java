@@ -30,7 +30,7 @@ import io.strimzi.api.kafka.model.kafka.tieredstorage.TieredStorageCustom;
 import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.server.plain.ServerPlainConfig;
 import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
-import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziReporterMetricsModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.cruisecontrol.CruiseControlConfigurationParameters;
 
@@ -136,16 +136,16 @@ public class KafkaBrokerConfigurationBuilder {
     /**
      * Configures the Strimzi Metrics Reporter. It is set only if user enabled Strimzi Metrics Reporter.
      *
-     * @param model     Strimzi Metrics Reporter configuration
+     * @param model     Cruise Control Metrics Reporter configuration
      *
      * @return Returns the builder instance
      */
-    public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(StrimziMetricsReporterModel model)   {
+    public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(StrimziReporterMetricsModel model)   {
         if (model != null && model.isEnabled()) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
             writer.println("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
             writer.println("prometheus.metrics.reporter.listener.enable=true");
-            writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("prometheus.metrics.reporter.listener=http://0.0.0.0:" + StrimziReporterMetricsModel.METRICS_PORT);
             model.getAllowList().ifPresent(allowList -> writer.println("prometheus.metrics.reporter.allowlist=" + allowList));
             writer.println();
         }
@@ -828,7 +828,7 @@ public class KafkaBrokerConfigurationBuilder {
                 metricReporters = appendMetricReporter(metricReporters, CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
             }
             if (injectStrimziMetricsReporter) {
-                metricReporters = appendMetricReporter(metricReporters, StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
+                metricReporters = appendMetricReporter(metricReporters, StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
             }
             if (metricReporters != null) {
                 // update the userConfig with the new list of metric reporters
@@ -850,7 +850,7 @@ public class KafkaBrokerConfigurationBuilder {
                     metricReporters = CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER;
                 }
                 if (injectStrimziMetricsReporter) {
-                    metricReporters = appendMetricReporter(metricReporters, StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
+                    metricReporters = appendMetricReporter(metricReporters, StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER);
                 }
                 writer.println(KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=" + metricReporters);
                 writer.println();

@@ -5,7 +5,7 @@
 package io.strimzi.operator.cluster.model.metrics;
 
 import io.strimzi.api.kafka.model.common.HasConfigurableMetrics;
-import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporter;
+import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetrics;
 import io.strimzi.operator.common.model.InvalidResourceException;
 
 import java.util.ArrayList;
@@ -17,7 +17,8 @@ import java.util.regex.PatternSyntaxException;
 /**
  * Represents a model for components with configurable metrics using Strimzi Reporter
  */
-public class StrimziMetricsReporterModel {
+public class StrimziReporterMetricsModel {
+
     /**
      * Fully Qualified Class Name of the Strimzi Kafka Prometheus Metrics Reporter.
      */
@@ -40,9 +41,9 @@ public class StrimziMetricsReporterModel {
      *
      * @param spec StrimziReporterMetrics object containing the metrics configuration
      */
-    public StrimziMetricsReporterModel(HasConfigurableMetrics spec) {
+    public StrimziReporterMetricsModel(HasConfigurableMetrics spec) {
         if (spec.getMetricsConfig() != null) {
-            if (spec.getMetricsConfig() instanceof StrimziMetricsReporter config) {
+            if (spec.getMetricsConfig() instanceof StrimziReporterMetrics config) {
                 validate(config);
                 this.isEnabled = true;
                 this.allowList = config.getValues() != null &&
@@ -69,7 +70,7 @@ public class StrimziMetricsReporterModel {
      *
      * @param config StrimziReporterMetrics configuration to validate
      */
-    /* test */ static void validate(StrimziMetricsReporter config) {
+    /* test */ static void validate(StrimziReporterMetrics config) {
         List<String> errors = new ArrayList<>();
         if (config.getValues() != null && config.getValues().getAllowList() != null) {
             if (config.getValues().getAllowList().isEmpty()) {

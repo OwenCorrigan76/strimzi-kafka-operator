@@ -23,10 +23,10 @@ import lombok.ToString;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class StrimziMetricsReporter extends MetricsConfig {
+public class StrimziReporterMetrics extends MetricsConfig {
     public static final String TYPE_STRIMZI_REPORTER_METRICS = "strimziMetricsReporter";
 
-    private StrimziMetricsReporterValues values;
+    private StrimziReporterValues values;
 
     @Description("Must be `" + TYPE_STRIMZI_REPORTER_METRICS + "`")
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -36,11 +36,11 @@ public class StrimziMetricsReporter extends MetricsConfig {
     }
 
     @Description("Configuration values for the Strimzi Metrics Reporter.")
-    public StrimziMetricsReporterValues getValues() {
+    public StrimziReporterValues getValues() {
         return values;
     }
 
-    public void setValues(StrimziMetricsReporterValues values) {
+    public void setValues(StrimziReporterValues values) {
         this.values = values;
     }
 }
