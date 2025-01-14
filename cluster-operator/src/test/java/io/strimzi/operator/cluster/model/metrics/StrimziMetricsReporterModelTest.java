@@ -18,7 +18,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StrimziMetricsReporterModelTest {
 
@@ -41,7 +40,6 @@ public class StrimziMetricsReporterModelTest {
                 .withMetricsConfig(metricsConfig).build());
 
         assertThat(metrics.isEnabled(), is(true));
-        assertTrue(metrics.getAllowList().isPresent());
         assertThat(metrics.getAllowList().get(), is("kafka_log.*,kafka_network.*"));
     }
 
