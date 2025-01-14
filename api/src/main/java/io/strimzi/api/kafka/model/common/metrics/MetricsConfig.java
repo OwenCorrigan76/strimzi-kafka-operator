@@ -23,7 +23,7 @@ import java.util.Map;
         property = "type")
 @JsonSubTypes({
     @JsonSubTypes.Type(name = JmxPrometheusExporterMetrics.TYPE_JMX_EXPORTER, value = JmxPrometheusExporterMetrics.class),
-    @JsonSubTypes.Type(name = StrimziMetricsReporter.TYPE_STRIMZI_REPORTER_METRICS, value = StrimziMetricsReporter.class)
+    @JsonSubTypes.Type(name = StrimziMetricsReporter.TYPE_STRIMZI_METRICS_REPORTER, value = StrimziMetricsReporter.class)
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @EqualsAndHashCode

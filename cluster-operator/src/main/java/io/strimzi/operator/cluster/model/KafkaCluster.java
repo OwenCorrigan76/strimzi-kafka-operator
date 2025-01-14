@@ -1937,7 +1937,7 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
     }
 
     /**
-     * @return Strimzi Reporter Metrics Model instance for configuring Prometheus metrics
+     * @return Strimzi Metrics Reporter Model instance for configuring Prometheus metrics
      */
     public StrimziMetricsReporterModel strimziMetricsReporter()   {
         return strimziMetricsReporter;

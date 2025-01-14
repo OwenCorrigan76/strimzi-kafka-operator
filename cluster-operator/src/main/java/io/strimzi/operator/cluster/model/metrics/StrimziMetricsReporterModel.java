@@ -18,7 +18,7 @@ import java.util.regex.PatternSyntaxException;
  * Represents a model for components with configurable metrics using Strimzi Reporter
  */
 public class StrimziMetricsReporterModel {
-    /**
+  /**
      * Fully Qualified Class Name of the Strimzi Kafka Prometheus Metrics Reporter.
      */
     public static final String KAFKA_PROMETHEUS_METRICS_REPORTER = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
@@ -65,7 +65,7 @@ public class StrimziMetricsReporterModel {
     }
 
     /**
-     * Validates the Strimzi Reporter Metrics configuration
+     * Validates the Strimzi Metrics Reporter configuration
      *
      * @param config StrimziReporterMetrics configuration to validate
      */

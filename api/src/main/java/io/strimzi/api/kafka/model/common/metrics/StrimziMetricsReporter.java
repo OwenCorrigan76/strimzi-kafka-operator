@@ -24,15 +24,15 @@ import lombok.ToString;
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
 public class StrimziMetricsReporter extends MetricsConfig {
-    public static final String TYPE_STRIMZI_REPORTER_METRICS = "strimziMetricsReporter";
+    public static final String TYPE_STRIMZI_METRICS_REPORTER = "strimziMetricsReporter";
 
     private StrimziMetricsReporterValues values;
 
-    @Description("Must be `" + TYPE_STRIMZI_REPORTER_METRICS + "`")
+    @Description("Must be `" + TYPE_STRIMZI_METRICS_REPORTER + "`")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @Override
     public String getType() {
-        return TYPE_STRIMZI_REPORTER_METRICS;
+        return TYPE_STRIMZI_METRICS_REPORTER;
     }
 
     @Description("Configuration values for the Strimzi Metrics Reporter.")

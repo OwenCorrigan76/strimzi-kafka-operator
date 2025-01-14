@@ -66,6 +66,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 @ParallelSuite
+@SuppressWarnings("checkstyle:classdataabstractioncoupling")
 public class KafkaBrokerConfigurationBuilderTest {
     private final static NodeRef NODE_REF = new NodeRef("my-cluster-kafka-2", 2, "kafka", false, true);
 
@@ -160,18 +161,23 @@ public class KafkaBrokerConfigurationBuilderTest {
 
     @ParallelTest
     public void testStrimziMetricsReporter() {
-        StrimziMetricsReporter metricsConfig = new StrimziMetricsReporterBuilder().build();
-        StrimziMetricsReporterModel strimziMetricsReporter = new StrimziMetricsReporterModel(new KafkaClusterSpecBuilder()
-                .withMetricsConfig(metricsConfig).build());
+        StrimziMetricsReporter config = new StrimziMetricsReporterBuilder()
+                .withNewValues()
+                    .withAllowList("kafka_log.*", "kafka_network.*")
+                .endValues()
+                .build();
+        StrimziMetricsReporterModel model = new StrimziMetricsReporterModel(new KafkaClusterSpecBuilder()
+                .withMetricsConfig(config).build());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withStrimziMetricsReporter(strimziMetricsReporter)
+                .withStrimziMetricsReporter(model)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
                  "kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter",
                  "prometheus.metrics.reporter.listener.enable=true",
-                 "prometheus.metrics.reporter.listener=http://0.0.0.0:9404"));
+                 "prometheus.metrics.reporter.listener=http://0.0.0.0:9404",
+                 "prometheus.metrics.reporter.allowlist=kafka_log.*,kafka_network.*"));
     }
 
     @ParallelTest
@@ -501,7 +507,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testNullUserConfigurationAndCCReporter()  {
+    public void testNullUserConfigurationWithCcMetricsReporter()  {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
                 .withUserConfiguration(null, true, false)
                 .build();
@@ -518,7 +524,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testNullUserConfigurationWithStrimziMetricReporter()  {
+    public void testNullUserConfigurationWithStrimziMetricsReporter()  {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
             .withUserConfiguration(null, false, true)
             .build();
@@ -535,7 +541,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testNullUserConfigurationWithCcAndStrimziMetricReporters()  {
+    public void testNullUserConfigurationWithCcAndStrimziMetricsReporters()  {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
             .withUserConfiguration(null, true, true)
             .build();
@@ -634,7 +640,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testUserConfigurationWithCCMetricsReporter()  {
+    public void testUserConfigurationWithCcMetricsReporter()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("auto.create.topics.enable", "false");
         userConfiguration.put("offsets.topic.replication.factor", 3);
@@ -663,7 +669,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testUserConfigurationWithCCMetricsReporterAndOtherMetricReporters()  {
+    public void testUserConfigurationWithCcAndOtherMetricsReporters()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("metric.reporters", "my.domain.CustomMetricReporter");
 
@@ -685,7 +691,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testUserConfigurationWithStrimziAndOtherMetricReporters()  {
+    public void testUserConfigurationWithStrimziAndOtherMetricsReporters()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("metric.reporters", "my.domain.CustomMetricReporter");
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
@@ -705,7 +711,7 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testUserConfigurationWithCcAndStrimziAndOtherMetricReporters()  {
+    public void testUserConfigurationWithCcAndStrimziAndOtherMetricsReporters()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("metric.reporters", "my.domain.CustomMetricReporter");
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
