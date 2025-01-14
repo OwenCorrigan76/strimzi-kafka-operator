@@ -303,30 +303,6 @@ public class KafkaClusterTest {
     }
 
     @ParallelTest
-    public void testStrimziMetricsConfigs() {
-        Kafka kafkaAssembly = new KafkaBuilder(KAFKA)
-                .editSpec()
-                    .editKafka()
-                        .withNewStrimziMetricsReporterConfig()
-                            .withNewValues()
-                                .withAllowList("kafka_log.*", "kafka_network.*")
-                            .endValues()
-                        .endStrimziMetricsReporterConfig()
-                    .endKafka()
-                .endSpec()
-                .build();
-
-        List<KafkaPool> pools = NodePoolUtils.createKafkaPools(Reconciliation.DUMMY_RECONCILIATION, kafkaAssembly, List.of(POOL_CONTROLLERS, POOL_MIXED, POOL_BROKERS), Map.of(), KafkaVersionTestUtils.DEFAULT_KRAFT_VERSION_CHANGE, SHARED_ENV_PROVIDER);
-        KafkaCluster kafkaCluster = KafkaCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaAssembly, pools, VERSIONS, KafkaVersionTestUtils.DEFAULT_KRAFT_VERSION_CHANGE, null, SHARED_ENV_PROVIDER);
-        String brokerConfig = kafkaCluster.generatePerBrokerConfiguration(1, ADVERTISED_HOSTNAMES, ADVERTISED_PORTS);
-
-        assertThat(brokerConfig, containsString("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
-        assertThat(brokerConfig, containsString("prometheus.metrics.reporter.listener.enable=true"));
-        assertThat(brokerConfig, containsString("prometheus.metrics.reporter.listener=http://0.0.0.0:9404"));
-        assertThat(brokerConfig, containsString("allowlist=kafka_log.*,kafka_network.*"));
-    }
-
-    @ParallelTest
     public void  testJavaSystemProperties() {
         Kafka kafka = new KafkaBuilder(KAFKA)
                 .editSpec()
@@ -974,7 +950,22 @@ public class KafkaClusterTest {
         }));
     }
 
-    private void testContainerPorts(Kafka kafka) {
+    @ParallelTest
+    public void testContainerPorts() {
+        Kafka kafka = new KafkaBuilder(KAFKA)
+                .editSpec()
+                    .editKafka()
+                        .withListeners(new GenericKafkaListenerBuilder().withName("tls").withPort(9093).withType(KafkaListenerType.INTERNAL).withTls().build(),
+                                new GenericKafkaListenerBuilder().withName("external").withPort(9094).withType(KafkaListenerType.NODEPORT).withTls().build())
+                        .withNewJmxPrometheusExporterMetricsConfig()
+                            .withNewValueFrom()
+                                .withNewConfigMapKeyRef("metrics-cm", "metrics.json", false)
+                            .endValueFrom()
+                        .endJmxPrometheusExporterMetricsConfig()
+                    .endKafka()
+                .endSpec()
+                .build();
+
         List<KafkaPool> pools = NodePoolUtils.createKafkaPools(Reconciliation.DUMMY_RECONCILIATION, kafka, List.of(POOL_CONTROLLERS, POOL_MIXED, POOL_BROKERS), Map.of(), KafkaVersionTestUtils.DEFAULT_KRAFT_VERSION_CHANGE, SHARED_ENV_PROVIDER);
         KafkaCluster kc = KafkaCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafka, pools, VERSIONS, KafkaVersionTestUtils.DEFAULT_KRAFT_VERSION_CHANGE, null, SHARED_ENV_PROVIDER);
         List<StrimziPodSet> podSets = kc.generatePodSets(true, null, null, node -> Map.of());
@@ -1005,45 +996,6 @@ public class KafkaClusterTest {
             }
         }));
     }
-
-    @ParallelTest
-    public void testWithJmxMetricsExporterContainerPorts() {
-        Kafka kafka = new KafkaBuilder(KAFKA)
-                .editSpec()
-                    .editKafka()
-                        .withListeners(new GenericKafkaListenerBuilder().withName("tls").withPort(9093).withType(KafkaListenerType.INTERNAL).withTls().build(),
-                                new GenericKafkaListenerBuilder().withName("external").withPort(9094).withType(KafkaListenerType.NODEPORT).withTls().build())
-                        .withNewJmxPrometheusExporterMetricsConfig()
-                            .withNewValueFrom()
-                                .withNewConfigMapKeyRef("metrics-cm", "metrics.json", false)
-                            .endValueFrom()
-                        .endJmxPrometheusExporterMetricsConfig()
-                    .endKafka()
-                .endSpec()
-                .build();
-
-        testContainerPorts(kafka);
-    }
-
-    @ParallelTest
-    public void testWithStrimziMetricsReporterContainerPorts() {
-        Kafka kafka = new KafkaBuilder(KAFKA)
-                .editSpec()
-                    .editKafka()
-                        .withListeners(new GenericKafkaListenerBuilder().withName("tls").withPort(9093).withType(KafkaListenerType.INTERNAL).withTls().build(),
-                                new GenericKafkaListenerBuilder().withName("external").withPort(9094).withType(KafkaListenerType.NODEPORT).withTls().build())
-                        .withNewStrimziMetricsReporterConfig()
-                            .withNewValues()
-                                .withAllowList("kafka_log.*", "kafka_network.*")
-                            .endValues()
-                        .endStrimziMetricsReporterConfig()
-                    .endKafka()
-                .endSpec()
-                .build();
-
-        testContainerPorts(kafka);
-    }
-
 
     @ParallelTest
     public void testAuxiliaryResourcesTemplate() {
@@ -2000,7 +1952,7 @@ public class KafkaClusterTest {
     @ParallelTest
     public void testMetricsParsingNoMetrics() {
         assertThat(KC.metrics(), is(nullValue()));
-        assertThat(KC.strimziMetricsReporter(), is(nullValue()));
+        assertThat(KC.strimziReporterMetrics(), is(nullValue()));
     }
 
     @ParallelTest

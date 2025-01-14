@@ -28,7 +28,7 @@ import java.util.Map;
 @JsonPropertyOrder({"allowList"})
 @EqualsAndHashCode()
 @ToString
-public class StrimziMetricsReporterValues implements UnknownPropertyPreserving {
+public class StrimziReporterValues implements UnknownPropertyPreserving {
     private static final String DEFAULT_REGEX = ".*";
 
     private List<String> allowList = List.of(DEFAULT_REGEX);
