@@ -4,8 +4,8 @@
  */
 package io.strimzi.operator.cluster.model.metrics;
 
-import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetrics;
-import io.strimzi.api.kafka.model.common.metrics.StrimziReporterMetricsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporter;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.kafka.KafkaClusterSpecBuilder;
 import io.strimzi.operator.common.model.InvalidResourceException;
 import org.junit.jupiter.api.Assertions;
@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class StrimziReporterMetricsModelTest {
+public class StrimziMetricsReporterModelTest {
 
     @Test
     public void testDisabled() {
-        StrimziReporterMetricsModel metrics = new StrimziReporterMetricsModel(new KafkaClusterSpecBuilder().build());
+        StrimziMetricsReporterModel metrics = new StrimziMetricsReporterModel(new KafkaClusterSpecBuilder().build());
 
         assertThat(metrics.isEnabled(), is(false));
         assertThat(metrics.getAllowList(), is(Optional.empty()));
@@ -32,12 +32,12 @@ public class StrimziReporterMetricsModelTest {
 
     @Test
     public void testEnabled() {
-        StrimziReporterMetrics metricsConfig = new StrimziReporterMetricsBuilder()
+        StrimziMetricsReporter metricsConfig = new StrimziMetricsReporterBuilder()
                 .withNewValues()
                     .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
                 .endValues()
                 .build();
-        StrimziReporterMetricsModel metrics = new StrimziReporterMetricsModel(new KafkaClusterSpecBuilder()
+        StrimziMetricsReporterModel metrics = new StrimziMetricsReporterModel(new KafkaClusterSpecBuilder()
                 .withMetricsConfig(metricsConfig).build());
 
         assertThat(metrics.isEnabled(), is(true));
@@ -47,15 +47,15 @@ public class StrimziReporterMetricsModelTest {
 
     @Test
     public void testValidation() {
-        assertDoesNotThrow(() -> StrimziReporterMetricsModel.validate(new StrimziReporterMetricsBuilder()
+        assertDoesNotThrow(() -> StrimziMetricsReporterModel.validate(new StrimziMetricsReporterBuilder()
                 .withNewValues()
                     .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
                 .endValues()
                 .build())
         );
 
-        InvalidResourceException ise0 = assertThrows(InvalidResourceException.class, () -> StrimziReporterMetricsModel.validate(
-                new StrimziReporterMetricsBuilder()
+        InvalidResourceException ise0 = assertThrows(InvalidResourceException.class, () -> StrimziMetricsReporterModel.validate(
+                new StrimziMetricsReporterBuilder()
                         .withNewValues()
                         .withAllowList(List.of())
                         .endValues()
@@ -64,8 +64,8 @@ public class StrimziReporterMetricsModelTest {
         assertThat(ise0.getMessage(), is("Metrics configuration is invalid: [Allowlist should contain at least one element]"));
 
 
-        InvalidResourceException ise1 = Assertions.assertThrows(InvalidResourceException.class, () -> StrimziReporterMetricsModel.validate(
-                new StrimziReporterMetricsBuilder()
+        InvalidResourceException ise1 = Assertions.assertThrows(InvalidResourceException.class, () -> StrimziMetricsReporterModel.validate(
+                new StrimziMetricsReporterBuilder()
                         .withNewValues()
                         .withAllowList(List.of("kafka_network.*", "kafka_log.***", "[a+"))
                         .endValues()

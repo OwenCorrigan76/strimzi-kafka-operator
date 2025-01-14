@@ -7,12 +7,15 @@ package io.strimzi.operator.cluster.model;
 import io.strimzi.api.kafka.model.common.CertSecretSource;
 import io.strimzi.api.kafka.model.common.CertSecretSourceBuilder;
 import io.strimzi.api.kafka.model.common.Rack;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporter;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.kafka.EphemeralStorageBuilder;
 import io.strimzi.api.kafka.model.kafka.JbodStorageBuilder;
 import io.strimzi.api.kafka.model.kafka.KafkaAuthorization;
 import io.strimzi.api.kafka.model.kafka.KafkaAuthorizationKeycloakBuilder;
 import io.strimzi.api.kafka.model.kafka.KafkaAuthorizationOpaBuilder;
 import io.strimzi.api.kafka.model.kafka.KafkaAuthorizationSimpleBuilder;
+import io.strimzi.api.kafka.model.kafka.KafkaClusterSpecBuilder;
 import io.strimzi.api.kafka.model.kafka.PersistentClaimStorageBuilder;
 import io.strimzi.api.kafka.model.kafka.SingleVolumeStorage;
 import io.strimzi.api.kafka.model.kafka.Storage;
@@ -153,6 +156,22 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2"));
+    }
+
+    @ParallelTest
+    public void testStrimziMetricsReporter() {
+        StrimziMetricsReporter metricsConfig = new StrimziMetricsReporterBuilder().build();
+        StrimziMetricsReporterModel strimziMetricsReporter = new StrimziMetricsReporterModel(new KafkaClusterSpecBuilder()
+                .withMetricsConfig(metricsConfig).build());
+
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+                .withStrimziMetricsReporter(strimziMetricsReporter)
+                .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                 "kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter",
+                 "prometheus.metrics.reporter.listener.enable=true",
+                 "prometheus.metrics.reporter.listener=http://0.0.0.0:9404"));
     }
 
     @ParallelTest
@@ -512,7 +531,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
                 "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "metric.reporters=" + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+                "metric.reporters=" + StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
     }
 
     @ParallelTest
@@ -530,7 +549,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
                 "metric.reporters=" + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER
-                        + "," + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+                        + "," + StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
     }
 
     @ParallelTest
@@ -640,7 +659,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "offsets.topic.replication.factor=3",
                 "transaction.state.log.replication.factor=3",
                 "transaction.state.log.min.isr=2",
-                "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"));
+                KafkaCluster.KAFKA_METRIC_REPORTERS_CONFIG_FIELD + "=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter"));
     }
 
     @ParallelTest
@@ -682,7 +701,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
                 "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "metric.reporters=my.domain.CustomMetricReporter," + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+                "metric.reporters=my.domain.CustomMetricReporter," + StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
     }
 
     @ParallelTest
@@ -704,7 +723,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
                 "metric.reporters=my.domain.CustomMetricReporter,"
                         + CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER + ","
-                        + StrimziReporterMetricsModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
+                        + StrimziMetricsReporterModel.KAFKA_PROMETHEUS_METRICS_REPORTER));
     }
 
     @ParallelTest
