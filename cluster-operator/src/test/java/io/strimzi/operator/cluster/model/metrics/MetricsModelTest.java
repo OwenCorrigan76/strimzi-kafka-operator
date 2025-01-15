@@ -23,7 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class JmxExporterMetricsModelTest {
+public class MetricsModelTest {
     @Test
     public void testDisabled()   {
         MetricsModel metrics = new MetricsModel(new KafkaConnectSpecBuilder().build());
@@ -54,7 +54,7 @@ public class JmxExporterMetricsModelTest {
     public void testProblemWithConfigMap()   {
         MetricsConfig metricsConfig = new JmxPrometheusExporterMetricsBuilder()
                 .withNewValueFrom()
-                    .withConfigMapKeyRef(new ConfigMapKeySelector("my-key", "my-name", false))
+                .withConfigMapKeyRef(new ConfigMapKeySelector("my-key", "my-name", false))
                 .endValueFrom()
                 .build();
 

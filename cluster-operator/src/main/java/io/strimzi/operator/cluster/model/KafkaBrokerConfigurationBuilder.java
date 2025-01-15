@@ -133,6 +133,7 @@ public class KafkaBrokerConfigurationBuilder {
 
         return this;
     }
+
     /**
      * Configures the Strimzi Metrics Reporter. It is set only if user enabled Strimzi Metrics Reporter.
      *
@@ -305,7 +306,6 @@ public class KafkaBrokerConfigurationBuilder {
         ////////////////////
         // Shared configurations with values dependent on all listeners
         ////////////////////
-
         // configure OAuth principal builder for all the nodes - brokers, controllers, and mixed
         configureOAuthPrincipalBuilderIfNeeded(writer, kafkaListeners);
 
