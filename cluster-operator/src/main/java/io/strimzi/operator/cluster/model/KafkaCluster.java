@@ -133,11 +133,6 @@ public class KafkaCluster extends AbstractModel implements SupportsMetrics, Supp
     protected static final String KAFKA_AGENT_PORT_NAME = "tcp-kafkaagent";
 
     /**
-     * The configuration field name for Kafka metric reporters.
-     */
-    public static final String KAFKA_METRIC_REPORTERS_CONFIG_FIELD = "metric.reporters";
-
-    /**
      * Port number used for control plane
      */
     public static final int CONTROLPLANE_PORT = 9090;
