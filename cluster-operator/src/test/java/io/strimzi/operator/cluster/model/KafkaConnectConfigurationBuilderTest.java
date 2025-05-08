@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.strimzi.operator.cluster.TestUtils.IsEquivalent.isEquivalent;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 @ParallelSuite
@@ -446,8 +447,91 @@ class KafkaConnectConfigurationBuilderTest {
                 "config.storage.topic=connect-cluster-configs",
                 "status.storage.topic=connect-cluster-status",
                 "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter")
+                "value.converter=org.apache.kafka.connect.json.JsonConverter",
+                "metric.reporters=com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,org.apache.kafka.common.metrics.JmxReporter,io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter",
+                "kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter")
         );
+    }
+
+    @ParallelTest
+    public void testCreateOrAddListConfigDoesNotExists() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        ModelUtils.createOrAddListConfig(config1, "test-key", "test-value");
+        assertThat(config1.getConfigOption("test-key"), is("test-value"));
+
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-1,test-value-2");
+        assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddListConfigExists() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        config1.setConfigOption("test-key", "test-value-1");
+
+        ModelUtils.createOrAddListConfig(config1, "test-key", "test-value-2");
+        assertThat(config1.getConfigOption("test-key"), is("test-value-1,test-value-2"));
+
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        config2.setConfigOption("test-key", "test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-3");
+        assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2,test-value-3"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddListConfigExistsAndContainsValue() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        config1.setConfigOption("test-key", "test-value-1");
+        ModelUtils.createOrAddListConfig(config1, "test-key", "test-value-1");
+        assertThat(config1.getConfigOption("test-key"), is("test-value-1"));
+
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        config2.setConfigOption("test-key", "test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-1");
+        assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListWithDuplicate() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());        config.setConfigOption("test-key", "test-value-1,test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(config, "test-key", "test-value-3,test-value-3");
+        assertThat(config.getConfigOption("test-key"), is("test-value-1,test-value-2,test-value-3"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListOrdering() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());         config.setConfigOption("test-key", "test-value-2,test-value-1");
+        ModelUtils.createOrAddListConfig(config, "test-key", "test-value-3,");
+        assertThat(config.getConfigOption("test-key"), is("test-value-2,test-value-1,test-value-3"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListWithNullConfig() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());         config.setConfigOption("test-key", "test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(null, "test-key", "test-value-3");
+        assertThat(config.getConfigOption("test-key"), is("test-value-1,test-value-2"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListWithNullKey() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());         config.setConfigOption("test-key", "test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(config, null, "test-value-3");
+        assertThat(config.getConfigOption("test-key"), is("test-value-1,test-value-2"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListWithNullValue() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());        config.setConfigOption("test-key", "test-value-1,test-value-2");
+        ModelUtils.createOrAddListConfig(config, "test-key", null);
+        assertThat(config.getConfigOption("test-key"), is("test-value-1,test-value-2"));
     }
 
     @ParallelTest
