@@ -46,6 +46,7 @@ import io.strimzi.api.kafka.model.common.jmx.KafkaJmxOptionsBuilder;
 import io.strimzi.api.kafka.model.common.metrics.JmxPrometheusExporterMetrics;
 import io.strimzi.api.kafka.model.common.metrics.JmxPrometheusExporterMetricsBuilder;
 import io.strimzi.api.kafka.model.common.metrics.MetricsConfig;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.common.template.AdditionalVolume;
 import io.strimzi.api.kafka.model.common.template.AdditionalVolumeBuilder;
 import io.strimzi.api.kafka.model.common.template.ContainerEnvVar;
@@ -70,6 +71,7 @@ import io.strimzi.operator.cluster.ResourceUtils;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.InvalidResourceException;
 import io.strimzi.operator.common.model.Labels;
@@ -2242,20 +2244,21 @@ public class KafkaMirrorMaker2ClusterTest {
 
     @ParallelTest
     public void testStrimziMetricsReporterConfig() {
-        KafkaMirrorMaker2 resourceWithMetrics = new KafkaMirrorMaker2Builder(resource)
-            .editSpec()
-                .withNewStrimziMetricsReporterConfig()
-                    .withNewValues()
-                        .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
-                    .endValues()
-                .endStrimziMetricsReporterConfig()
-            .endSpec()
-            .build();
-        
-        InvalidResourceException ex = assertThrows(InvalidResourceException.class,
-            () -> KafkaMirrorMaker2Cluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resourceWithMetrics, VERSIONS, SHARED_ENV_PROVIDER));
+        MetricsConfig metrics = new StrimziMetricsReporterBuilder()
+                .withNewValues()
+                    .withAllowList("kafka_log.*", "kafka_network.*")
+                .endValues().build();
 
-        assertThat(ex.getMessage(), is("The Strimzi Metrics Reporter is not supported with this component"));
+        KafkaMirrorMaker2 kafkaMirrorMaker2 = new KafkaMirrorMaker2Builder(this.resource)
+                .editSpec()
+                    .withMetricsConfig(metrics)
+                .endSpec()
+                .build();
+
+        KafkaMirrorMaker2Cluster kc = KafkaMirrorMaker2Cluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaMirrorMaker2, VERSIONS, SHARED_ENV_PROVIDER);
+
+        assertThat(kc.metrics(), is(notNullValue()));
+        assertThat(((StrimziMetricsReporterModel) kc.metrics()).getAllowList(), is("kafka_log.*,kafka_network.*"));
     }
 
     @ParallelTest

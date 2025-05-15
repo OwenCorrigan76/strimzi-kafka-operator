@@ -77,6 +77,7 @@ import io.strimzi.operator.cluster.ResourceUtils;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.InvalidResourceException;
 import io.strimzi.operator.common.model.Labels;
@@ -199,7 +200,7 @@ public class KafkaConnectClusterTest {
 
     protected List<EnvVar> getExpectedEnvVars() {
         List<EnvVar> expected = new ArrayList<>();
-        expected.add(new EnvVarBuilder().withName(io.strimzi.operator.cluster.model.KafkaConnectCluster.ENV_VAR_KAFKA_CONNECT_JMX_EXPORTER_ENABLED).withValue(String.valueOf(true)).build());
+        expected.add(new EnvVarBuilder().withName(KafkaConnectCluster.ENV_VAR_KAFKA_CONNECT_JMX_EXPORTER_ENABLED).withValue(String.valueOf(true)).build());
         expected.add(new EnvVarBuilder().withName(KafkaConnectCluster.ENV_VAR_STRIMZI_KAFKA_GC_LOG_ENABLED).withValue(Boolean.toString(JvmOptions.DEFAULT_GC_LOGGING_ENABLED)).build());
         expected.add(new EnvVarBuilder().withName(AbstractModel.ENV_VAR_KAFKA_HEAP_OPTS).withValue(kafkaHeapOpts).build());
         expected.add(new EnvVarBuilder().withName("NO_PROXY").withValue("127.0.0.1").build());
@@ -2180,25 +2181,21 @@ public class KafkaConnectClusterTest {
 
     @ParallelTest
     public void testStrimziMetricsReporterConfig() {
-        KafkaConnect resourceWithMetrics = new KafkaConnectBuilder(resource)
+        MetricsConfig metrics = new io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder()
+                .withNewValues()
+                    .withAllowList("kafka_log.*", "kafka_network.*")
+                .endValues().build();
+
+        KafkaConnect kafkaConnect = new KafkaConnectBuilder(this.resource)
                 .editSpec()
-                    .withNewStrimziMetricsReporterConfig()
-                        .withNewValues()
-                            .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
-                        .endValues()
-                    .endStrimziMetricsReporterConfig()
+                    .withMetricsConfig(metrics)
                 .endSpec()
                 .build();
-        KafkaConnectCluster kcc = KafkaConnectCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resourceWithMetrics, VERSIONS, SHARED_ENV_PROVIDER);
 
-        ConfigMap cm = kcc.generateConnectConfigMap(new MetricsAndLogging(metricsCM, null));
-        String configData = String.join("\n", cm.getData().values());
-        System.out.println(configData);
+        KafkaConnectCluster kc = KafkaConnectCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaConnect, VERSIONS, SHARED_ENV_PROVIDER);
 
-        assertThat(configData, containsString("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
-//        assertThat(configData, containsString("prometheus.metrics.reporter.listener=http://:9404"));
-//        assertThat(configData, containsString("prometheus.metrics.reporter.allowlist=kafka_log.*,kafka_network.*"));
-
+        assertThat(kc.metrics(), is(notNullValue()));
+        assertThat(((StrimziMetricsReporterModel) kc.metrics()).getAllowList(), is("kafka_log.*,kafka_network.*"));
     }
 
     @ParallelTest

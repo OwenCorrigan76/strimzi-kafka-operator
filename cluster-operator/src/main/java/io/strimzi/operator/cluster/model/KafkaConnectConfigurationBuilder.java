@@ -15,13 +15,11 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha256;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha512;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
-import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
+import io.strimzi.operator.common.Reconciliation;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 import static io.strimzi.operator.cluster.model.KafkaConnectCluster.OAUTH_SECRETS_BASE_VOLUME_MOUNT;
@@ -41,6 +39,7 @@ public class KafkaConnectConfigurationBuilder {
 
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
+
     private String securityProtocol = "PLAINTEXT";
 
     /**
@@ -273,75 +272,48 @@ public class KafkaConnectConfigurationBuilder {
      * Adds user provided Kafka Connect configurations.
      *
      * @param configurations   User provided Kafka Connect configurations
-     * @param injectCcMetricsReporter   Inject the Cruise Control Metrics Reporter into the configuration
      * @param injectStrimziMetricsReporter   Inject the Strimzi Metrics Reporter into the configuration
      * @param injectKafkaJmxReporter          Flag to indicate if metrics are enabled. If they are we inject the JmxReporter into the configuration
      *
      * @return Returns the builder instance
      */
-    public KafkaConnectConfigurationBuilder withUserConfigurations(AbstractConfiguration configurations,
-                                                                   boolean injectCcMetricsReporter,
-                                                                   boolean injectKafkaJmxReporter,
-                                                                   boolean injectStrimziMetricsReporter) {
-        maybeAddMetricReporters(configurations, injectCcMetricsReporter, injectKafkaJmxReporter, injectStrimziMetricsReporter);
-
-        // Adds the Yammer kafka.metrics.reporters to the user configuration.
-        maybeAddYammerMetricsReporters(configurations, injectStrimziMetricsReporter);
+    public KafkaConnectConfigurationBuilder withUserConfiguration(AbstractConfiguration configurations,
+                                                                  boolean injectKafkaJmxReporter,
+                                                                  boolean injectStrimziMetricsReporter) {
+        if (configurations instanceof KafkaConnectConfiguration) {
+            configurations = new KafkaConnectConfiguration((KafkaConnectConfiguration) configurations);
+        } else if (configurations instanceof KafkaMirrorMaker2Configuration) {
+            configurations = new KafkaMirrorMaker2Configuration((KafkaMirrorMaker2Configuration) configurations);
+        } else {
+            configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, new ArrayList<>());
+        }
 
         printConfigProviders(configurations);
-        if (configurations != null && !configurations.getConfiguration().isEmpty()) {
-            printSectionHeader("User Provided configurations");
+
+        maybeAddMetricReporters(configurations, injectKafkaJmxReporter, injectStrimziMetricsReporter);
+
+        if (!configurations.getConfiguration().isEmpty()) {
+            printSectionHeader("User Provided configurations with Strimzi Injections");
             writer.println(configurations.getConfiguration());
             writer.println();
         }
         return this;
     }
 
-    private void maybeAddMetricReporters(AbstractConfiguration userConfig, boolean injectCcMetricsReporter, boolean injectKafkaJmxReporter, boolean injectStrimziMetricsReporter) {
-        if (injectCcMetricsReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
-        }
+    private void maybeAddMetricReporters(AbstractConfiguration userConfig, boolean injectKafkaJmxReporter, boolean injectStrimziMetricsReporter) {
         if (injectKafkaJmxReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
+            String values = "org.apache.kafka.common.metrics.JmxReporter";
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "admin.metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "producer.metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "consumer.metric.reporters", values);
         }
         if (injectStrimziMetricsReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
-        }
-    }
-    private void maybeAddYammerMetricsReporters(AbstractConfiguration userConfig, boolean injectStrimziMetricsReporter) {
-        if (injectStrimziMetricsReporter) {
-            createOrAddListConfig(userConfig, "kafka.metrics.reporters", "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
-        }
-    }
-
-    /**
-     * Append list configuration values or create a new list configuration if missing.
-     * A list configuration can contain a comma separated list of values.
-     * Duplicated values are removed.
-     *
-     * @param kafkaConfig Kafka configuration.
-     * @param key List configuration key.
-     * @param values List configuration values.
-     */
-    public static void createOrAddListConfig(AbstractConfiguration kafkaConfig, String key, String values) {
-        if (kafkaConfig != null && key != null && !key.isBlank() && values != null && !values.isBlank()) {
-            String existingConfig = kafkaConfig.getConfigOption(key);
-            // using an ordered set to preserve ordering of the existing kafkaConfig
-            Set<String> existingSet = existingConfig == null ? new LinkedHashSet<>() :
-                    Arrays.stream(existingConfig.split(","))
-                            .map(String::trim)
-                            .filter(s -> !s.isEmpty())
-                            .collect(Collectors.toCollection(LinkedHashSet::new));
-            Set<String> newValues = Arrays.stream(values.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            // add only new values
-            boolean updated = existingSet.addAll(newValues);
-            if (updated) {
-                String updatedConfig = String.join(",", existingSet);
-                kafkaConfig.setConfigOption(key, updatedConfig);
-            }
+            String values = "kafka.metrics.KafkaPrometheusMetricsReporter";
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "admin.metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "producer.metric.reporters", values);
+            ModelUtils.createOrAddListConfig(userConfig, "consumer.metric.reporters", values);
         }
     }
 
