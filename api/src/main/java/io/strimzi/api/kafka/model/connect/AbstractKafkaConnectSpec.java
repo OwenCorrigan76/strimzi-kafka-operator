@@ -23,7 +23,6 @@ import io.strimzi.api.kafka.model.common.jmx.HasJmxOptions;
 import io.strimzi.api.kafka.model.common.jmx.KafkaJmxOptions;
 import io.strimzi.api.kafka.model.common.metrics.MetricsConfig;
 import io.strimzi.api.kafka.model.common.tracing.Tracing;
-import io.strimzi.crdgenerator.annotations.CelValidation;
 import io.strimzi.crdgenerator.annotations.Description;
 import io.strimzi.crdgenerator.annotations.KubeLink;
 import io.sundr.builder.annotations.Buildable;
@@ -158,16 +157,6 @@ public abstract class AbstractKafkaConnectSpec extends Spec implements HasConfig
 
     @Description("Metrics configuration.")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    @CelValidation(rules = {
-        @CelValidation.CelValidationRule(
-                rule = "self.type != 'jmxPrometheusExporter' || has(self.valueFrom)",
-                message = "valueFrom property is required"
-            ),
-        @CelValidation.CelValidationRule(
-                rule = "self.type != 'strimziMetricsReporter' || has(self.values)",
-                message = "values property is required"
-            )
-    })
     @Override
     public MetricsConfig getMetricsConfig() {
         return metricsConfig;

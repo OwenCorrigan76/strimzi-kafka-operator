@@ -60,7 +60,6 @@ import io.strimzi.api.kafka.model.connect.KafkaConnectSpec;
 import io.strimzi.api.kafka.model.connect.KafkaConnectTemplate;
 import io.strimzi.api.kafka.model.podset.StrimziPodSet;
 import io.strimzi.operator.cluster.ClusterOperatorConfig;
-import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
 import io.strimzi.operator.cluster.model.jmx.JmxModel;
 import io.strimzi.operator.cluster.model.jmx.SupportsJmx;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
@@ -159,7 +158,6 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
     protected List<ExternalConfigurationVolumeSource> externalVolumes = Collections.emptyList();
     protected Tracing tracing;
     protected JmxModel jmx;
-    private CruiseControlMetricsReporter ccMetricsReporter;
     protected MetricsModel metrics;
     protected LoggingModel logging;
     protected AbstractConfiguration configuration;
@@ -235,7 +233,7 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
      * thus permitting reuse of the setter-calling code for subclasses.
      *
      * @param reconciliation    Reconciliation marker
-     * @param kafkaConnectSpec              Spec section of the Kafka Connect resource
+     * @param spec              Spec section of the Kafka Connect resource
      * @param versions          Supported Kafka versions
      * @param result            Kafka Connect resource which will be returned as the result
      *
@@ -243,17 +241,17 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
      */
     @SuppressWarnings({"checkstyle:CyclomaticComplexity", "checkstyle:NPathComplexity", "deprecation"})
     protected static <C extends KafkaConnectCluster> C fromSpec(Reconciliation reconciliation,
-                                                                KafkaConnectSpec kafkaConnectSpec,
+                                                                KafkaConnectSpec spec,
                                                                 KafkaVersion.Lookup versions,
                                                                 C result) {
-        result.replicas = kafkaConnectSpec.getReplicas();
-        result.tracing = kafkaConnectSpec.getTracing();
+        result.replicas = spec.getReplicas();
+        result.tracing = spec.getTracing();
 
         // Might already contain configuration from Mirror Maker 2 which extends Connect
         // We have to check it and either use the Mirror Maker 2 configs or get the Connect configs
         AbstractConfiguration config = result.configuration;
         if (config == null) {
-            config = new KafkaConnectConfiguration(reconciliation, kafkaConnectSpec.getConfig().entrySet());
+            config = new KafkaConnectConfiguration(reconciliation, spec.getConfig().entrySet());
             result.configuration = config;
         }
         if (result.tracing != null)   {
@@ -266,54 +264,54 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         }
 
         if (result.getImage() == null) {
-            result.image = versions.kafkaConnectVersion(kafkaConnectSpec.getImage(), kafkaConnectSpec.getVersion());
+            result.image = versions.kafkaConnectVersion(spec.getImage(), spec.getVersion());
         }
 
-        result.resources = kafkaConnectSpec.getResources();
-        result.gcLoggingEnabled = kafkaConnectSpec.getJvmOptions() == null ? JvmOptions.DEFAULT_GC_LOGGING_ENABLED : kafkaConnectSpec.getJvmOptions().isGcLoggingEnabled();
+        result.resources = spec.getResources();
+        result.gcLoggingEnabled = spec.getJvmOptions() == null ? JvmOptions.DEFAULT_GC_LOGGING_ENABLED : spec.getJvmOptions().isGcLoggingEnabled();
 
-        result.jvmOptions = kafkaConnectSpec.getJvmOptions();
+        result.jvmOptions = spec.getJvmOptions();
 
-        if (kafkaConnectSpec.getMetricsConfig() instanceof JmxPrometheusExporterMetrics) {
-            result.metrics = new JmxPrometheusExporterModel(kafkaConnectSpec);
-        } else if (kafkaConnectSpec.getMetricsConfig() instanceof StrimziMetricsReporter) {
-            result.metrics = new StrimziMetricsReporterModel(kafkaConnectSpec, DEFAULT_METRICS_ALLOW_LIST);
+        if (spec.getMetricsConfig() instanceof JmxPrometheusExporterMetrics) {
+            result.metrics = new JmxPrometheusExporterModel(spec);
+        } else if (spec.getMetricsConfig() instanceof StrimziMetricsReporter) {
+            result.metrics = new StrimziMetricsReporterModel(spec, DEFAULT_METRICS_ALLOW_LIST);
         }
 
         // Kafka 4.0 and newer uses Log4j2
-        KafkaVersion version = versions.supportedVersion(kafkaConnectSpec.getVersion());
+        KafkaVersion version = versions.supportedVersion(spec.getVersion());
         boolean usesLog4j2 = KafkaVersion.compareDottedVersions(version.version(), "4.0.0") >= 0;
-        result.logging = new LoggingModel(kafkaConnectSpec, result.getClass().getSimpleName(), usesLog4j2, !usesLog4j2);
+        result.logging = new LoggingModel(spec, result.getClass().getSimpleName(), usesLog4j2, !usesLog4j2);
 
         result.jmx = new JmxModel(
                 reconciliation.namespace(),
                 KafkaConnectResources.jmxSecretName(result.cluster),
                 result.labels,
                 result.ownerReference,
-                kafkaConnectSpec
+                spec
         );
-        result.readinessProbeOptions = ProbeUtils.extractReadinessProbeOptionsOrDefault(kafkaConnectSpec, DEFAULT_HEALTHCHECK_OPTIONS);
-        result.livenessProbeOptions = ProbeUtils.extractLivenessProbeOptionsOrDefault(kafkaConnectSpec, DEFAULT_HEALTHCHECK_OPTIONS);
+        result.readinessProbeOptions = ProbeUtils.extractReadinessProbeOptionsOrDefault(spec, DEFAULT_HEALTHCHECK_OPTIONS);
+        result.livenessProbeOptions = ProbeUtils.extractLivenessProbeOptionsOrDefault(spec, DEFAULT_HEALTHCHECK_OPTIONS);
 
-        result.setRack(kafkaConnectSpec.getRack());
+        result.setRack(spec.getRack());
 
-        String initImage = kafkaConnectSpec.getClientRackInitImage();
+        String initImage = spec.getClientRackInitImage();
         if (initImage == null) {
             initImage = System.getenv().getOrDefault(ClusterOperatorConfig.STRIMZI_DEFAULT_KAFKA_INIT_IMAGE, "quay.io/strimzi/operator:latest");
         }
         result.setInitImage(initImage);
 
-        result.setBootstrapServers(kafkaConnectSpec.getBootstrapServers());
+        result.setBootstrapServers(spec.getBootstrapServers());
 
-        result.setTls(kafkaConnectSpec.getTls());
-        String warnMsg = AuthenticationUtils.validateClientAuthentication(kafkaConnectSpec.getAuthentication(), kafkaConnectSpec.getTls() != null);
+        result.setTls(spec.getTls());
+        String warnMsg = AuthenticationUtils.validateClientAuthentication(spec.getAuthentication(), spec.getTls() != null);
         if (!warnMsg.isEmpty()) {
             LOGGER.warnCr(reconciliation, warnMsg);
         }
-        result.setAuthentication(kafkaConnectSpec.getAuthentication());
+        result.setAuthentication(spec.getAuthentication());
 
-        if (kafkaConnectSpec.getTemplate() != null) {
-            KafkaConnectTemplate template = kafkaConnectSpec.getTemplate();
+        if (spec.getTemplate() != null) {
+            KafkaConnectTemplate template = spec.getTemplate();
 
             result.templatePodDisruptionBudget = template.getPodDisruptionBudget();
             result.templateInitClusterRoleBinding = template.getClusterRoleBinding();
@@ -327,8 +325,8 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
             result.templateInitContainer = template.getInitContainer();
         }
 
-        if (kafkaConnectSpec.getExternalConfiguration() != null)    {
-            ExternalConfiguration externalConfiguration = kafkaConnectSpec.getExternalConfiguration();
+        if (spec.getExternalConfiguration() != null)    {
+            ExternalConfiguration externalConfiguration = spec.getExternalConfiguration();
 
             if (externalConfiguration.getEnv() != null && !externalConfiguration.getEnv().isEmpty())    {
                 result.externalEnvs = externalConfiguration.getEnv();
@@ -878,14 +876,13 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         data.put(
                 KAFKA_CONNECT_CONFIGURATION_FILENAME,
                 new KafkaConnectConfigurationBuilder(bootstrapServers)
-                        .withStrimziMetricsReporter(metrics)
-                        .withUserConfigurations(configuration, ccMetricsReporter != null,
-                                metrics instanceof JmxPrometheusExporterModel, metrics instanceof StrimziMetricsReporterModel)
                         .withRestListeners(REST_API_PORT)
                         .withPluginPath()
                         .withTls(tls)
                         .withAuthentication(authentication)
                         .withRackId()
+                        .withStrimziMetricsReporter(metrics)
+                        .withUserConfiguration(configuration, metrics instanceof JmxPrometheusExporterModel, metrics instanceof StrimziMetricsReporterModel)
                         .build()
         );
 

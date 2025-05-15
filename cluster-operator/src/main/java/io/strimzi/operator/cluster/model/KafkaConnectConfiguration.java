@@ -34,6 +34,17 @@ public class KafkaConnectConfiguration extends AbstractConfiguration {
     }
 
     /**
+     * Constructor used to add user configuration.
+     *
+     * @param configuration User provided Kafka Connect configuration
+     *
+     */
+    public KafkaConnectConfiguration(KafkaConnectConfiguration configuration) {
+        super(configuration);
+    }
+
+
+    /**
      * Constructor used to instantiate this class from JsonObject. Should be used to create configuration from
      * ConfigMap / CRD.
      *

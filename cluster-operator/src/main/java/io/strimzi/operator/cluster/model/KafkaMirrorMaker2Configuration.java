@@ -35,6 +35,16 @@ public class KafkaMirrorMaker2Configuration extends AbstractConfiguration {
     }
 
     /**
+     * Constructor used to add user configuration.
+     *
+     * @param configuration User provided MirrorMaker 2 configuration
+     *
+     */
+    public KafkaMirrorMaker2Configuration(KafkaMirrorMaker2Configuration configuration) {
+        super(configuration);
+    }
+
+    /**
      * Constructor used to instantiate this class from JsonObject. Should be used to
      * create configuration from ConfigMap / CRD.
      *
