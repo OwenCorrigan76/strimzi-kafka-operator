@@ -15,6 +15,8 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha256;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha512;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
+import io.strimzi.operator.cluster.model.metrics.MetricsModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 
 import java.io.PrintWriter;
@@ -272,9 +274,8 @@ public class KafkaConnectConfigurationBuilder {
      * Adds user provided Kafka Connect configurations.
      *
      * @param configurations   User provided Kafka Connect configurations
+     * @param injectKafkaJmxReporter         Flag to indicate if metrics are enabled. If they are we inject the JmxReporter into the configuration
      * @param injectStrimziMetricsReporter   Inject the Strimzi Metrics Reporter into the configuration
-     * @param injectKafkaJmxReporter          Flag to indicate if metrics are enabled. If they are we inject the JmxReporter into the configuration
-     *
      * @return Returns the builder instance
      */
     public KafkaConnectConfigurationBuilder withUserConfiguration(AbstractConfiguration configurations,
@@ -352,11 +353,11 @@ public class KafkaConnectConfigurationBuilder {
      *
      * @return Returns the builder instance
      */
-    public KafkaConnectConfigurationBuilder withStrimziMetricsReporter(io.strimzi.operator.cluster.model.metrics.MetricsModel model)   {
-        if (model instanceof io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel reporterModel) {
+    public KafkaConnectConfigurationBuilder withStrimziMetricsReporter(MetricsModel model)   {
+        if (model instanceof StrimziMetricsReporterModel reporterModel) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
             writer.println("prometheus.metrics.reporter.listener.enable=true");
-            writer.println("prometheus.metrics.reporter.listener=http://:" + io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("prometheus.metrics.reporter.listener=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
             writer.println("prometheus.metrics.reporter.allowlist=" + reporterModel.getAllowList());
             writer.println();
         }
@@ -397,5 +398,4 @@ public class KafkaConnectConfigurationBuilder {
         configureSecurityProtocol();
         return stringWriter.toString();
     }
-
 }
