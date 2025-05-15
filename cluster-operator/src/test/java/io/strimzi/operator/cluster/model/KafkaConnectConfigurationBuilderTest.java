@@ -398,7 +398,7 @@ class KafkaConnectConfigurationBuilderTest {
     @ParallelTest
     public void testWithConfigProviders() {
         String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfigurations(null)
+                .withUserConfigurations(null, true, true, true)
                 .build();
 
         assertThat(configuration, isEquivalent(
@@ -424,7 +424,7 @@ class KafkaConnectConfigurationBuilderTest {
         KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfigurations(configurations)
+                .withUserConfigurations(configurations, true, true, true)
                 .build();
 
         assertThat(configuration, isEquivalent(
@@ -458,7 +458,7 @@ class KafkaConnectConfigurationBuilderTest {
         KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfigurations(configurations)
+                .withUserConfigurations(configurations,  false, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent(
