@@ -571,7 +571,6 @@ public class KafkaBrokerConfigurationBuilderTest {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("config.providers", "env");
         userConfiguration.put("config.providers.env.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
-
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         // Broker
@@ -788,7 +787,7 @@ public class KafkaBrokerConfigurationBuilderTest {
 
         assertThat(actualConfig, isEquivalent(expectedConfig));
     }
-
+    
     @ParallelTest
     public void testEphemeralStorageLogDirs()  {
         Storage storage = new EphemeralStorageBuilder()
@@ -2708,4 +2707,41 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .forEach(e -> assertThat(e.getMessage(), is("Configuration values are required")
                 ));
     }
+}
+    public void testCreateOrAddConfigListNewConfig()  {
+        String key = "test-key";
+        String value = "test-value";
+
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
+        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, value);
+
+        assertThat(config.getConfigOption(key), is("test-value"));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListContainsValue()  {
+        String key = "test-key";
+        String value = "test-value";
+        String newValue = "test-value";
+
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
+        config.setConfigOption(key, value);
+        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, newValue);
+
+        assertThat(config.getConfigOption(key), is(value));
+    }
+
+    @ParallelTest
+    public void testCreateOrAddConfigListDoesNotContainValue()  {
+        String key = "test-key";
+        String value = "test-value";
+        String newValue = "new-value";
+
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
+        config.setConfigOption(key, value);
+        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, newValue);
+
+        assertThat(config.getConfigOption(key), is(String.join(",", value, newValue)));
+    }
+
 }
