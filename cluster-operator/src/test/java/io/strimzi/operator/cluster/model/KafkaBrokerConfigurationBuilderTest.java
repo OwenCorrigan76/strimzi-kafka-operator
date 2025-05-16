@@ -226,10 +226,10 @@ public class KafkaBrokerConfigurationBuilderTest {
         StrimziMetricsReporterModel model = new StrimziMetricsReporterModel(
                 new KafkaClusterSpecBuilder()
                         .withMetricsConfig(new StrimziMetricsReporterBuilder()
-                            .withNewValues()
+                                .withNewValues()
                                 .withAllowList(List.of("kafka_log.*", "kafka_network.*"))
-                            .endValues()
-                            .build())
+                                .endValues()
+                                .build())
                         .build(), List.of(".*"));
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
@@ -454,23 +454,23 @@ public class KafkaBrokerConfigurationBuilderTest {
     @ParallelTest
     public void testOpaAuthorizationWithTls() {
         CertSecretSource cert = new CertSecretSourceBuilder()
-            .withSecretName("my-secret")
-            .withCertificate("my.crt")
-            .build();
+                .withSecretName("my-secret")
+                .withCertificate("my.crt")
+                .build();
 
         KafkaAuthorization auth = new KafkaAuthorizationOpaBuilder()
-            .withUrl("https://opa:8181/v1/data/kafka/allow")
-            .withAllowOnError(true)
-            .withInitialCacheCapacity(1000)
-            .withMaximumCacheSize(10000)
-            .withExpireAfterMs(60000)
-            .withTlsTrustedCertificates(cert)
-            .addToSuperUsers("jack", "CN=conor")
-            .build();
+                .withUrl("https://opa:8181/v1/data/kafka/allow")
+                .withAllowOnError(true)
+                .withInitialCacheCapacity(1000)
+                .withMaximumCacheSize(10000)
+                .withExpireAfterMs(60000)
+                .withTlsTrustedCertificates(cert)
+                .addToSuperUsers("jack", "CN=conor")
+                .build();
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-            .withAuthorization("my-cluster", auth)
-            .build();
+                .withAuthorization("my-cluster", auth)
+                .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
                 "authorizer.class.name=org.openpolicyagent.kafka.OpaAuthorizer",
@@ -486,6 +486,21 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "super.users=User:CN=my-cluster-kafka,O=io.strimzi;User:CN=my-cluster-entity-topic-operator,O=io.strimzi;User:CN=my-cluster-entity-user-operator,O=io.strimzi;User:CN=my-cluster-kafka-exporter,O=io.strimzi;User:CN=my-cluster-cruise-control,O=io.strimzi;User:CN=cluster-operator,O=io.strimzi;User:jack;User:CN=conor"));
     }
 
+    @ParallelTest
+    public void testNullUserConfiguration()  {
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+                .withUserConfiguration(null, false, false, false)
+                .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka"));
+    }
 
     @ParallelTest
     public void testNullUserConfigurationAndCCReporter()  {
@@ -505,12 +520,12 @@ public class KafkaBrokerConfigurationBuilderTest {
     }
 
     @ParallelTest
-    public void testEmptyUserConfiguration() {
+    public void testEmptyUserConfiguration()  {
         Map<String, Object> userConfiguration = new HashMap<>();
         KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-                .withUserConfiguration(null, false, false, false)
+                .withUserConfiguration(kafkaConfiguration, false, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
@@ -521,6 +536,69 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
                 "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
                 "config.providers.strimzidir.param.allowed.paths=/opt/kafka"));
+    }
+
+    @ParallelTest
+    public void testUserConfiguration()  {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        userConfiguration.put("auto.create.topics.enable", "false");
+        userConfiguration.put("offsets.topic.replication.factor", 3);
+        userConfiguration.put("transaction.state.log.replication.factor", 3);
+        userConfiguration.put("transaction.state.log.min.isr", 2);
+
+        KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+                .withUserConfiguration(kafkaConfiguration, false, false, false)
+                .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "auto.create.topics.enable=false",
+                "offsets.topic.replication.factor=3",
+                "transaction.state.log.replication.factor=3",
+                "transaction.state.log.min.isr=2"));
+    }
+
+    @ParallelTest
+    public void testUserConfigurationWithConfigProviders()  {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        userConfiguration.put("config.providers", "env");
+        userConfiguration.put("config.providers.env.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
+
+        KafkaConfiguration kafkaConfiguration = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+
+        // Broker
+        String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
+                .withUserConfiguration(kafkaConfiguration, false, false, false)
+                .build();
+
+        assertThat(configuration, isEquivalent("node.id=2",
+                "config.providers=env,strimzienv,strimzifile,strimzidir",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
+                "config.providers.strimzifile.param.allowed.paths=/opt/kafka",
+                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
+                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
+                "config.providers.env.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider"));
+
+        // Controller
+        configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, new NodeRef("my-cluster-kafka-3", 3, "kafka", true, false))
+                .withUserConfiguration(kafkaConfiguration, false, false, false)
+                .build();
+
+        assertThat(configuration, isEquivalent("node.id=3",
+                "config.providers=env,strimzienv",
+                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
+                "config.providers.strimzienv.param.allowlist.pattern=.*",
+                "config.providers.env.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider"));
     }
 
     @ParallelTest
@@ -556,6 +634,7 @@ public class KafkaBrokerConfigurationBuilderTest {
                 "metric.reporters=io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter",
                 "kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
     }
+
 
     @ParallelTest
     public void testNullUserConfigurationWithCruiseControlAndStrimziMetricsReporters() {
@@ -621,78 +700,78 @@ public class KafkaBrokerConfigurationBuilderTest {
 
         // testing 8 combinations of 3 boolean values
         return Stream.of(
-               Arguments.of(userConfig, false, false, false,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter"
-               ),
+                Arguments.of(userConfig, false, false, false,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter"
+                ),
 
-               Arguments.of(userConfig, true, false, false,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter"),
+                Arguments.of(userConfig, true, false, false,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter"),
 
-               Arguments.of(userConfig, false, true, false,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "org.apache.kafka.common.metrics.JmxReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter"
-               ),
-               Arguments.of(userConfig, false, false, true,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter,"
-                               + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
-               ),
-               Arguments.of(userConfig, true, true, false,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
-                               + "org.apache.kafka.common.metrics.JmxReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter"
-               ),
-               Arguments.of(userConfig, true, false, true,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
-                               + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter,"
-                               + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
-               ),
-               Arguments.of(userConfig, false, true, true,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "org.apache.kafka.common.metrics.JmxReporter,"
-                               + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter,"
-                               + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
-               ),
-               Arguments.of(userConfig, true, true, true,
-                       expectedConfig
-                               + "metric.reporters="
-                               + "my.domain.CustomMetricReporter,"
-                               + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
-                               + "org.apache.kafka.common.metrics.JmxReporter,"
-                               + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                               + "kafka.metrics.reporters="
-                               + "my.domain.CustomYammerMetricReporter,"
-                               + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
+                Arguments.of(userConfig, false, true, false,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "org.apache.kafka.common.metrics.JmxReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter"
+                ),
+                Arguments.of(userConfig, false, false, true,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter,"
+                                + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
+                ),
+                Arguments.of(userConfig, true, true, false,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
+                                + "org.apache.kafka.common.metrics.JmxReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter"
+                ),
+                Arguments.of(userConfig, true, false, true,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter,"
+                                + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
+                ),
+                Arguments.of(userConfig, false, true, true,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "org.apache.kafka.common.metrics.JmxReporter,"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter,"
+                                + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"
+                ),
+                Arguments.of(userConfig, true, true, true,
+                        expectedConfig
+                                + "metric.reporters="
+                                + "my.domain.CustomMetricReporter,"
+                                + "com.linkedin.kafka.cruisecontrol.metricsreporter.CruiseControlMetricsReporter,"
+                                + "org.apache.kafka.common.metrics.JmxReporter,"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "kafka.metrics.reporters="
+                                + "my.domain.CustomYammerMetricReporter,"
+                                + "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
     }
 
     @ParameterizedTest
@@ -709,7 +788,7 @@ public class KafkaBrokerConfigurationBuilderTest {
 
         assertThat(actualConfig, isEquivalent(expectedConfig));
     }
-    
+
     @ParallelTest
     public void testEphemeralStorageLogDirs()  {
         Storage storage = new EphemeralStorageBuilder()
@@ -810,8 +889,8 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(false)
                 .withNewConfiguration()
-                    .withMaxConnections(100)
-                    .withMaxConnectionCreationRate(10)
+                .withMaxConnections(100)
+                .withMaxConnectionCreationRate(10)
                 .endConfiguration()
                 .build();
 
@@ -821,8 +900,8 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(false)
                 .withNewConfiguration()
-                    .withMaxConnections(1000)
-                    .withMaxConnectionCreationRate(50)
+                .withMaxConnections(1000)
+                .withMaxConnectionCreationRate(50)
                 .endConfiguration()
                 .build();
 
@@ -1305,11 +1384,11 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(true)
                 .withNewConfiguration()
-                    .withNewBrokerCertChainAndKey()
-                        .withSecretName("my-secret")
-                        .withKey("my.key")
-                        .withCertificate("my.crt")
-                    .endBrokerCertChainAndKey()
+                .withNewBrokerCertChainAndKey()
+                .withSecretName("my-secret")
+                .withKey("my.key")
+                .withCertificate("my.crt")
+                .endBrokerCertChainAndKey()
                 .endConfiguration()
                 .build();
 
@@ -1478,11 +1557,11 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.ROUTE)
                 .withTls(true)
                 .withNewConfiguration()
-                    .withNewBrokerCertChainAndKey()
-                        .withSecretName("my-secret")
-                        .withKey("my.key")
-                        .withCertificate("my.crt")
-                    .endBrokerCertChainAndKey()
+                .withNewBrokerCertChainAndKey()
+                .withSecretName("my-secret")
+                .withKey("my.key")
+                .withCertificate("my.crt")
+                .endBrokerCertChainAndKey()
                 .endConfiguration()
                 .build();
 
@@ -1754,11 +1833,11 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INGRESS)
                 .withTls(true)
                 .withNewConfiguration()
-                    .withControllerClass("nginx-ingress")
-                    .withNewBootstrap()
-                        .withHost("bootstrap.mytld.com")
-                    .endBootstrap()
-                    .withBrokers(broker)
+                .withControllerClass("nginx-ingress")
+                .withNewBootstrap()
+                .withHost("bootstrap.mytld.com")
+                .endBootstrap()
+                .withBrokers(broker)
                 .endConfiguration()
                 .build();
 
@@ -1893,24 +1972,24 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(false)
                 .withNewKafkaListenerAuthenticationOAuth()
-                    .withValidIssuerUri("http://valid-issuer")
-                    .withJwksEndpointUri("http://jwks")
-                    .withServerBearerTokenLocation("/var/run/secrets/kubernetes.io/serviceaccount/token")
-                    .withEnableECDSA(true)
-                    .withUserNameClaim("preferred_username")
-                    .withUserNamePrefix("user-")
-                    .withFallbackUserNameClaim("client_id")
-                    .withFallbackUserNamePrefix("service-account-")
-                    .withGroupsClaim("$.groups")
-                    .withGroupsClaimDelimiter(";")
-                    .withMaxSecondsWithoutReauthentication(3600)
-                    .withJwksMinRefreshPauseSeconds(5)
-                    .withEnablePlain(true)
-                    .withTokenEndpointUri("http://token")
-                    .withConnectTimeoutSeconds(30)
-                    .withReadTimeoutSeconds(30)
-                    .withEnableMetrics(true)
-                    .withIncludeAcceptHeader(false)
+                .withValidIssuerUri("http://valid-issuer")
+                .withJwksEndpointUri("http://jwks")
+                .withServerBearerTokenLocation("/var/run/secrets/kubernetes.io/serviceaccount/token")
+                .withEnableECDSA(true)
+                .withUserNameClaim("preferred_username")
+                .withUserNamePrefix("user-")
+                .withFallbackUserNameClaim("client_id")
+                .withFallbackUserNamePrefix("service-account-")
+                .withGroupsClaim("$.groups")
+                .withGroupsClaimDelimiter(";")
+                .withMaxSecondsWithoutReauthentication(3600)
+                .withJwksMinRefreshPauseSeconds(5)
+                .withEnablePlain(true)
+                .withTokenEndpointUri("http://token")
+                .withConnectTimeoutSeconds(30)
+                .withReadTimeoutSeconds(30)
+                .withEnableMetrics(true)
+                .withIncludeAcceptHeader(false)
                 .endKafkaListenerAuthenticationOAuth()
                 .build();
 
@@ -2058,12 +2137,12 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(false)
                 .withNewKafkaListenerAuthenticationOAuth()
-                    .withValidIssuerUri("https://valid-issuer")
-                    .withJwksEndpointUri("https://jwks")
-                    .withEnableECDSA(true)
-                    .withUserNameClaim("preferred_username")
-                    .withDisableTlsHostnameVerification(true)
-                    .withTlsTrustedCertificates(cert)
+                .withValidIssuerUri("https://valid-issuer")
+                .withJwksEndpointUri("https://jwks")
+                .withEnableECDSA(true)
+                .withUserNameClaim("preferred_username")
+                .withDisableTlsHostnameVerification(true)
+                .withTlsTrustedCertificates(cert)
                 .endKafkaListenerAuthenticationOAuth()
                 .build();
 
@@ -2106,15 +2185,15 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(false)
                 .withNewKafkaListenerAuthenticationOAuth()
-                    .withValidIssuerUri("https://valid-issuer")
-                    .withIntrospectionEndpointUri("https://intro")
-                    .withCheckAudience(true)
-                    .withCustomClaimCheck("'kafka-user' in @.roles.client-roles.kafka")
-                    .withClientId("my-oauth-client")
-                    .withNewClientSecret()
-                        .withSecretName("my-secret")
-                        .withKey("client-secret")
-                    .endClientSecret()
+                .withValidIssuerUri("https://valid-issuer")
+                .withIntrospectionEndpointUri("https://intro")
+                .withCheckAudience(true)
+                .withCustomClaimCheck("'kafka-user' in @.roles.client-roles.kafka")
+                .withClientId("my-oauth-client")
+                .withNewClientSecret()
+                .withSecretName("my-secret")
+                .withKey("client-secret")
+                .endClientSecret()
                 .endKafkaListenerAuthenticationOAuth()
                 .build();
 
@@ -2369,11 +2448,11 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .withType(KafkaListenerType.INTERNAL)
                 .withTls(true)
                 .withNewKafkaListenerAuthenticationCustomAuth()
-                    .withSasl(false)
-                    .withListenerConfig(Map.of("ssl.client.auth", "required",
-                            "ssl.principal.mapping.rules", "RULE:^CN=(.*?),(.*)$/CN=$1/",
-                            "ssl.truststore.location", "/opt/kafka/custom-authn-secrets/custom-listener-external-9094/custom-truststore/ca.crt",
-                            "ssl.truststore.type", "PEM"))
+                .withSasl(false)
+                .withListenerConfig(Map.of("ssl.client.auth", "required",
+                        "ssl.principal.mapping.rules", "RULE:^CN=(.*?),(.*)$/CN=$1/",
+                        "ssl.truststore.location", "/opt/kafka/custom-authn-secrets/custom-listener-external-9094/custom-truststore/ca.crt",
+                        "ssl.truststore.type", "PEM"))
                 .endKafkaListenerAuthenticationCustomAuth()
                 .build();
 
@@ -2478,38 +2557,38 @@ public class KafkaBrokerConfigurationBuilderTest {
     @ParallelTest
     public void testWithStrimziQuotas() {
         QuotasPluginStrimzi quotasPluginStrimzi = new QuotasPluginStrimziBuilder()
-            .withConsumerByteRate(1000L)
-            .withProducerByteRate(1000L)
-            .withExcludedPrincipals("User:my-user1", "User:my-user2")
-            .withMinAvailableBytesPerVolume(200000L)
-            .build();
+                .withConsumerByteRate(1000L)
+                .withProducerByteRate(1000L)
+                .withExcludedPrincipals("User:my-user1", "User:my-user2")
+                .withMinAvailableBytesPerVolume(200000L)
+                .build();
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-            .withQuotas("my-personal-cluster", quotasPluginStrimzi)
-            .build();
+                .withQuotas("my-personal-cluster", quotasPluginStrimzi)
+                .build();
 
         assertThat(configuration, isEquivalent("node.id=2",
-            "client.quota.callback.class=io.strimzi.kafka.quotas.StaticQuotaCallback",
-            "client.quota.callback.static.kafka.admin.bootstrap.servers=my-personal-cluster-kafka-brokers:9091",
-            "client.quota.callback.static.kafka.admin.security.protocol=SSL",
-            "client.quota.callback.static.kafka.admin.ssl.keystore.location=/tmp/kafka/cluster.keystore.p12",
-            "client.quota.callback.static.kafka.admin.ssl.keystore.password=${strimzienv:CERTS_STORE_PASSWORD}",
-            "client.quota.callback.static.kafka.admin.ssl.keystore.type=PKCS12",
-            "client.quota.callback.static.kafka.admin.ssl.truststore.location=/tmp/kafka/cluster.truststore.p12",
-            "client.quota.callback.static.kafka.admin.ssl.truststore.password=${strimzienv:CERTS_STORE_PASSWORD}",
-            "client.quota.callback.static.kafka.admin.ssl.truststore.type=PKCS12",
-            "client.quota.callback.static.produce=1000",
-            "client.quota.callback.static.fetch=1000",
-            "client.quota.callback.static.storage.per.volume.limit.min.available.bytes=200000",
-            "client.quota.callback.static.excluded.principal.name.list=User:CN=my-personal-cluster-kafka,O=io.strimzi;User:CN=my-personal-cluster-cruise-control,O=io.strimzi;User:my-user1;User:my-user2"
+                "client.quota.callback.class=io.strimzi.kafka.quotas.StaticQuotaCallback",
+                "client.quota.callback.static.kafka.admin.bootstrap.servers=my-personal-cluster-kafka-brokers:9091",
+                "client.quota.callback.static.kafka.admin.security.protocol=SSL",
+                "client.quota.callback.static.kafka.admin.ssl.keystore.location=/tmp/kafka/cluster.keystore.p12",
+                "client.quota.callback.static.kafka.admin.ssl.keystore.password=${strimzienv:CERTS_STORE_PASSWORD}",
+                "client.quota.callback.static.kafka.admin.ssl.keystore.type=PKCS12",
+                "client.quota.callback.static.kafka.admin.ssl.truststore.location=/tmp/kafka/cluster.truststore.p12",
+                "client.quota.callback.static.kafka.admin.ssl.truststore.password=${strimzienv:CERTS_STORE_PASSWORD}",
+                "client.quota.callback.static.kafka.admin.ssl.truststore.type=PKCS12",
+                "client.quota.callback.static.produce=1000",
+                "client.quota.callback.static.fetch=1000",
+                "client.quota.callback.static.storage.per.volume.limit.min.available.bytes=200000",
+                "client.quota.callback.static.excluded.principal.name.list=User:CN=my-personal-cluster-kafka,O=io.strimzi;User:CN=my-personal-cluster-cruise-control,O=io.strimzi;User:my-user1;User:my-user2"
         ));
     }
 
     @ParallelTest
     public void testWithNullQuotas() {
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-            .withQuotas("my-personal-cluster", null)
-            .build();
+                .withQuotas("my-personal-cluster", null)
+                .build();
 
         assertThat(configuration, not(containsString("client.quota.callback.class")));
         assertThat(configuration, not(containsString("client.quota.callback.static")));
@@ -2518,15 +2597,15 @@ public class KafkaBrokerConfigurationBuilderTest {
     @ParallelTest
     public void testWithKafkaQuotas() {
         QuotasPluginKafka quotasPluginKafka = new QuotasPluginKafkaBuilder()
-            .withConsumerByteRate(1000L)
-            .withProducerByteRate(1000L)
-            .withRequestPercentage(33)
-            .withControllerMutationRate(0.5)
-            .build();
+                .withConsumerByteRate(1000L)
+                .withProducerByteRate(1000L)
+                .withRequestPercentage(33)
+                .withControllerMutationRate(0.5)
+                .build();
 
         String configuration = new KafkaBrokerConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, NODE_REF)
-            .withQuotas("my-personal-cluster", quotasPluginKafka)
-            .build();
+                .withQuotas("my-personal-cluster", quotasPluginKafka)
+                .build();
 
         assertThat(configuration, not(containsString("client.quota.callback.class")));
         assertThat(configuration, not(containsString("client.quota.callback.static")));
@@ -2628,42 +2707,5 @@ public class KafkaBrokerConfigurationBuilderTest {
                 .map(value -> assertThrows(IllegalArgumentException.class, () -> KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, "test-key", value)))
                 .forEach(e -> assertThat(e.getMessage(), is("Configuration values are required")
                 ));
-    }
-}
-    @ParallelTest
-    public void testCreateOrAddConfigListNewConfig()  {
-        String key = "test-key";
-        String value = "test-value";
-
-        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
-        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, value);
-
-        assertThat(config.getConfigOption(key), is("test-value"));
-    }
-
-    @ParallelTest
-    public void testCreateOrAddConfigListContainsValue()  {
-        String key = "test-key";
-        String value = "test-value";
-        String newValue = "test-value";
-
-        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
-        config.setConfigOption(key, value);
-        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, newValue);
-
-        assertThat(config.getConfigOption(key), is(value));
-    }
-
-    @ParallelTest
-    public void testCreateOrAddConfigListDoesNotContainValue()  {
-        String key = "test-key";
-        String value = "test-value";
-        String newValue = "new-value";
-
-        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
-        config.setConfigOption(key, value);
-        KafkaBrokerConfigurationBuilder.createOrAddListConfig(config, key, newValue);
-
-        assertThat(config.getConfigOption(key), is(String.join(",", value, newValue)));
     }
 }
