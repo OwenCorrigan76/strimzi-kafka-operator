@@ -17,10 +17,5 @@ public interface MetricsModel {
      * Metrics endpoint port number.
      */
     int METRICS_PORT = 9404;
-<<<<<<< HEAD
-=======
 
-    boolean isEnabled = false;
-
->>>>>>> 45d3ef475 (Add support for the Strimzi Metrics Reporter to brokers and controllers)
 }
