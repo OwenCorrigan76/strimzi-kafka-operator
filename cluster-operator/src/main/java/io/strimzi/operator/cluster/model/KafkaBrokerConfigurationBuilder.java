@@ -39,11 +39,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -853,13 +851,13 @@ public class KafkaBrokerConfigurationBuilder {
      */
     private void maybeAddMetricReporters(KafkaConfiguration userConfig, boolean injectCcMetricsReporter, boolean injectKafkaJmxReporter, boolean injectStrimziMetricsReporter) {
         if (injectCcMetricsReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
         }
         if (injectKafkaJmxReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
         }
         if (injectStrimziMetricsReporter) {
-            createOrAddListConfig(userConfig, "metric.reporters", "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
         }
     }
 
@@ -871,7 +869,7 @@ public class KafkaBrokerConfigurationBuilder {
      */
     private void maybeAddYammerMetricsReporters(KafkaConfiguration userConfig, boolean injectStrimziMetricsReporter) {
         if (injectStrimziMetricsReporter) {
-            createOrAddListConfig(userConfig, "kafka.metrics.reporters", "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
+            ModelUtils.createOrAddListConfig(userConfig, "kafka.metrics.reporters", "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
         }
     }
 
@@ -1014,45 +1012,6 @@ public class KafkaBrokerConfigurationBuilder {
         }
 
         writer.println(String.format("client.quota.callback.static.excluded.principal.name.list=%s", String.join(";", excludedPrincipals)));
-    }
-
-    /**
-     * Append list configuration values or create a new list configuration if missing.
-     * A list configuration can contain a comma separated list of values.
-     * Duplicated values are removed.
-     *
-     * @param kafkaConfig Kafka configuration.
-     * @param key List configuration key.
-     * @param values List configuration values.
-     */
-    static void createOrAddListConfig(AbstractConfiguration kafkaConfig, String key, String values) {
-        if (kafkaConfig == null) {
-            throw new IllegalArgumentException("Configuration is required");
-        }
-        if (key == null || key.isBlank()) {
-            throw new IllegalArgumentException("Configuration key is required");
-        }
-        if (values == null || values.isBlank()) {
-            throw new IllegalArgumentException("Configuration values are required");
-        }
-
-        String existingConfig = kafkaConfig.getConfigOption(key);
-        // using an ordered set to preserve ordering of the existing kafkaConfig as values could potentially be user-provided.
-        Set<String> existingSet = existingConfig == null ? new LinkedHashSet<>() :
-                Arrays.stream(existingConfig.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<String> newValues = Arrays.stream(values.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        // add only new values
-        boolean updated = existingSet.addAll(newValues);
-        if (updated) {
-            String updatedConfig = String.join(",", existingSet);
-            kafkaConfig.setConfigOption(key, updatedConfig);
-        }
     }
 
     /**

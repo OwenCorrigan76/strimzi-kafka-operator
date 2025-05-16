@@ -156,7 +156,7 @@ public abstract class AbstractKafkaConnectSpec extends Spec implements HasConfig
         this.jmxOptions = jmxOptions;
     }
 
-    @Description("Metrics configuration. Only `jmxPrometheusExporter` can be configured, as this component does not yet support `strimziMetricsReporter`.")
+    @Description("Metrics configuration.")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     @CelValidation(rules = {
         @CelValidation.CelValidationRule(
@@ -164,8 +164,8 @@ public abstract class AbstractKafkaConnectSpec extends Spec implements HasConfig
                 message = "valueFrom property is required"
             ),
         @CelValidation.CelValidationRule(
-                rule = "self.type != 'strimziMetricsReporter'",
-                message = "value type not supported"
+                rule = "self.type != 'strimziMetricsReporter' || has(self.values)",
+                message = "values property is required"
             )
     })
     @Override

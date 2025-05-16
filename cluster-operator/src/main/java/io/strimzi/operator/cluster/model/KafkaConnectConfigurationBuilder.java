@@ -15,9 +15,13 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha256;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha512;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
+import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.strimzi.operator.cluster.model.KafkaConnectCluster.OAUTH_SECRETS_BASE_VOLUME_MOUNT;
@@ -269,18 +273,76 @@ public class KafkaConnectConfigurationBuilder {
      * Adds user provided Kafka Connect configurations.
      *
      * @param configurations   User provided Kafka Connect configurations
+     * @param injectCcMetricsReporter   Inject the Cruise Control Metrics Reporter into the configuration
+     * @param injectStrimziMetricsReporter   Inject the Strimzi Metrics Reporter into the configuration
+     * @param injectKafkaJmxReporter          Flag to indicate if metrics are enabled. If they are we inject the JmxReporter into the configuration
      *
      * @return Returns the builder instance
      */
-    public KafkaConnectConfigurationBuilder withUserConfigurations(AbstractConfiguration configurations) {
-        printConfigProviders(configurations);
+    public KafkaConnectConfigurationBuilder withUserConfigurations(AbstractConfiguration configurations,
+                                                                   boolean injectCcMetricsReporter,
+                                                                   boolean injectKafkaJmxReporter,
+                                                                   boolean injectStrimziMetricsReporter) {
+        maybeAddMetricReporters(configurations, injectCcMetricsReporter, injectKafkaJmxReporter, injectStrimziMetricsReporter);
 
+        // Adds the Yammer kafka.metrics.reporters to the user configuration.
+        maybeAddYammerMetricsReporters(configurations, injectStrimziMetricsReporter);
+
+        printConfigProviders(configurations);
         if (configurations != null && !configurations.getConfiguration().isEmpty()) {
-            printSectionHeader("Provided configurations");
+            printSectionHeader("User Provided configurations");
             writer.println(configurations.getConfiguration());
             writer.println();
         }
         return this;
+    }
+
+    private void maybeAddMetricReporters(AbstractConfiguration userConfig, boolean injectCcMetricsReporter, boolean injectKafkaJmxReporter, boolean injectStrimziMetricsReporter) {
+        if (injectCcMetricsReporter) {
+            createOrAddListConfig(userConfig, "metric.reporters", CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER);
+        }
+        if (injectKafkaJmxReporter) {
+            createOrAddListConfig(userConfig, "metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
+        }
+        if (injectStrimziMetricsReporter) {
+            createOrAddListConfig(userConfig, "metric.reporters", "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
+        }
+    }
+    private void maybeAddYammerMetricsReporters(AbstractConfiguration userConfig, boolean injectStrimziMetricsReporter) {
+        if (injectStrimziMetricsReporter) {
+            createOrAddListConfig(userConfig, "kafka.metrics.reporters", "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
+        }
+    }
+
+    /**
+     * Append list configuration values or create a new list configuration if missing.
+     * A list configuration can contain a comma separated list of values.
+     * Duplicated values are removed.
+     *
+     * @param kafkaConfig Kafka configuration.
+     * @param key List configuration key.
+     * @param values List configuration values.
+     */
+    public static void createOrAddListConfig(AbstractConfiguration kafkaConfig, String key, String values) {
+        if (kafkaConfig != null && key != null && !key.isBlank() && values != null && !values.isBlank()) {
+            String existingConfig = kafkaConfig.getConfigOption(key);
+            // using an ordered set to preserve ordering of the existing kafkaConfig
+            Set<String> existingSet = existingConfig == null ? new LinkedHashSet<>() :
+                    Arrays.stream(existingConfig.split(","))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
+            Set<String> newValues = Arrays.stream(values.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+            // add only new values
+            boolean updated = existingSet.addAll(newValues);
+            if (updated) {
+                String updatedConfig = String.join(",", existingSet);
+                kafkaConfig.setConfigOption(key, updatedConfig);
+            }
+        }
     }
 
     /**
@@ -311,6 +373,23 @@ public class KafkaConnectConfigurationBuilder {
         return  this;
     }
 
+    /**
+     * Configures the Strimzi Metrics Reporter. It is set only if user enables Strimzi Metrics Reporter.
+     *
+     * @param model     Strimzi Metrics Reporter configuration
+     *
+     * @return Returns the builder instance
+     */
+    public KafkaConnectConfigurationBuilder withStrimziMetricsReporter(io.strimzi.operator.cluster.model.metrics.MetricsModel model)   {
+        if (model instanceof io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel reporterModel) {
+            printSectionHeader("Strimzi Metrics Reporter configuration");
+            writer.println("prometheus.metrics.reporter.listener.enable=true");
+            writer.println("prometheus.metrics.reporter.listener=http://:" + io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("prometheus.metrics.reporter.allowlist=" + reporterModel.getAllowList());
+            writer.println();
+        }
+        return this;
+    }
 
     /**
      * Prints the section header into the configuration file. This makes it more human-readable
@@ -346,4 +425,5 @@ public class KafkaConnectConfigurationBuilder {
         configureSecurityProtocol();
         return stringWriter.toString();
     }
+
 }
