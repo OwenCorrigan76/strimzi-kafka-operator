@@ -16,6 +16,7 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha512;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 
@@ -41,6 +42,7 @@ public class KafkaConnectConfigurationBuilder {
 
     private final StringWriter stringWriter = new StringWriter();
     private final PrintWriter writer = new PrintWriter(stringWriter);
+    private final Reconciliation reconciliation;
 
     private String securityProtocol = "PLAINTEXT";
 
@@ -48,8 +50,11 @@ public class KafkaConnectConfigurationBuilder {
      * Connect configuration template constructor
      *
      * @param bootstrapServers  Kafka cluster bootstrap servers to connect to
+     * @param reconciliation  reconciliation object
+     *
      */
-    public KafkaConnectConfigurationBuilder(String bootstrapServers) {
+    public KafkaConnectConfigurationBuilder(String bootstrapServers, Reconciliation reconciliation) {
+        this.reconciliation = reconciliation;
         printHeader();
         printBootstrapServers(bootstrapServers);
     }
@@ -281,12 +286,13 @@ public class KafkaConnectConfigurationBuilder {
     public KafkaConnectConfigurationBuilder withUserConfiguration(AbstractConfiguration configurations,
                                                                   boolean injectKafkaJmxReporter,
                                                                   boolean injectStrimziMetricsReporter) {
+        // creating a defensive copy to avoid mutating the input config
         if (configurations instanceof KafkaConnectConfiguration) {
             configurations = new KafkaConnectConfiguration((KafkaConnectConfiguration) configurations);
         } else if (configurations instanceof KafkaMirrorMaker2Configuration) {
             configurations = new KafkaMirrorMaker2Configuration((KafkaMirrorMaker2Configuration) configurations);
         } else {
-            configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, new ArrayList<>());
+            configurations = new KafkaConnectConfiguration(new ArrayList<>(), reconciliation);
         }
 
         printConfigProviders(configurations);
@@ -310,7 +316,7 @@ public class KafkaConnectConfigurationBuilder {
             ModelUtils.createOrAddListConfig(userConfig, "consumer.metric.reporters", values);
         }
         if (injectStrimziMetricsReporter) {
-            String values = "kafka.metrics.KafkaPrometheusMetricsReporter";
+            String values = "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter";
             ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", values);
             ModelUtils.createOrAddListConfig(userConfig, "admin.metric.reporters", values);
             ModelUtils.createOrAddListConfig(userConfig, "producer.metric.reporters", values);
@@ -356,9 +362,18 @@ public class KafkaConnectConfigurationBuilder {
     public KafkaConnectConfigurationBuilder withStrimziMetricsReporter(MetricsModel model)   {
         if (model instanceof StrimziMetricsReporterModel reporterModel) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
-            writer.println("prometheus.metrics.reporter.listener.enable=true");
-            writer.println("prometheus.metrics.reporter.listener=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
-            writer.println("prometheus.metrics.reporter.allowlist=" + reporterModel.getAllowList());
+            writer.println(StrimziMetricsReporterConfig.LISTENER_ENABLE + "=true");
+            writer.println(StrimziMetricsReporterConfig.LISTENER + "=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println(StrimziMetricsReporterConfig.ALLOW_LIST + "=" + reporterModel.getAllowList());
+            writer.println("admin." + StrimziMetricsReporterConfig.LISTENER_ENABLE + "=true");
+            writer.println("admin." + StrimziMetricsReporterConfig.LISTENER + "=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("admin." + StrimziMetricsReporterConfig.ALLOW_LIST + "=" + reporterModel.getAllowList());
+            writer.println("producer." + StrimziMetricsReporterConfig.LISTENER_ENABLE + "=true");
+            writer.println("producer." + StrimziMetricsReporterConfig.LISTENER + "=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("producer." + StrimziMetricsReporterConfig.ALLOW_LIST + "=" + reporterModel.getAllowList());
+            writer.println("consumer." + StrimziMetricsReporterConfig.LISTENER_ENABLE + "=true");
+            writer.println("consumer." + StrimziMetricsReporterConfig.LISTENER + "=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println("consumer." + StrimziMetricsReporterConfig.ALLOW_LIST + "=" + reporterModel.getAllowList());
             writer.println();
         }
         return this;

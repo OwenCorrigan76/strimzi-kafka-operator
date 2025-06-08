@@ -80,6 +80,7 @@ import io.strimzi.operator.cluster.PlatformFeaturesAvailability;
 import io.strimzi.operator.cluster.model.jmx.JmxModel;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.cluster.model.nodepools.NodePoolUtils;
 import io.strimzi.operator.common.Annotations;
@@ -324,9 +325,9 @@ public class KafkaClusterTest {
         assertThat(cms.size(), is(8));
 
         for (ConfigMap cm : cms) {
-            assertThat(cm.getData().toString(), containsString("kafka.metrics.reporters=io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter"));
-            assertThat(cm.getData().toString(), containsString("prometheus.metrics.reporter.listener=http://:9404"));
-            assertThat(cm.getData().toString(), containsString("prometheus.metrics.reporter.allowlist=kafka_log.*,kafka_network.*"));
+            assertThat(cm.getData().toString(), containsString("kafka.metrics.reporters=" + StrimziMetricsReporterConfig.YAMMER_CLASS));
+            assertThat(cm.getData().toString(), containsString(StrimziMetricsReporterConfig.LISTENER + "=http://:9404"));
+            assertThat(cm.getData().toString(), containsString(StrimziMetricsReporterConfig.ALLOW_LIST + "=kafka_log.*,kafka_network.*"));
         }
 
         NetworkPolicy np = kc.generateNetworkPolicy(null, null);

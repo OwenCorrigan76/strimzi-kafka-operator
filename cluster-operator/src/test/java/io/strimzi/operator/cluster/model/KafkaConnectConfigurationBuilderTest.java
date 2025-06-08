@@ -37,7 +37,7 @@ class KafkaConnectConfigurationBuilderTest {
 
     @ParallelTest
     public void testBuild()  {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS).build();
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION).build();
         assertThat(configuration, isEquivalent(
                 "bootstrap.servers=my-cluster-kafka-bootstrap:9092",
                 "security.protocol=PLAINTEXT",
@@ -56,7 +56,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endTrustedCertificate()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withTls(clientTls)
                 .build();
 
@@ -94,7 +94,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endCertificateAndKey()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withTls(clientTls)
                 .withAuthentication(tlsAuth)
                 .build();
@@ -139,7 +139,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endPasswordSecret()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withAuthentication(authPlain)
                 .build();
 
@@ -177,7 +177,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endPasswordSecret()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withTls(clientTls)
                 .withAuthentication(authPlain)
                 .build();
@@ -218,7 +218,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endPasswordSecret()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withAuthentication(authScramSha256)
                 .build();
 
@@ -256,7 +256,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endPasswordSecret()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withTls(clientTls)
                 .withAuthentication(authScramSha256)
                 .build();
@@ -297,7 +297,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endPasswordSecret()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withAuthentication(authScramSha512)
                 .build();
 
@@ -346,7 +346,7 @@ class KafkaConnectConfigurationBuilderTest {
                 .endTlsTrustedCertificate()
                 .build();
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withAuthentication(authOAuth)
                 .build();
 
@@ -384,7 +384,7 @@ class KafkaConnectConfigurationBuilderTest {
 
     @ParallelTest
     public void testWithRackId() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withRackId()
                 .build();
 
@@ -401,8 +401,8 @@ class KafkaConnectConfigurationBuilderTest {
 
     @ParallelTest
     public void testWithConfigProviders() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(null, true, true)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
+                .withUserConfiguration(null, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent(
@@ -422,11 +422,7 @@ class KafkaConnectConfigurationBuilderTest {
                 "config.storage.topic=connect-cluster-configs",
                 "status.storage.topic=connect-cluster-status",
                 "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter",
-                "metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "admin.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "producer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "consumer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter"
+                "value.converter=org.apache.kafka.connect.json.JsonConverter"
         ));
     }
 
@@ -435,10 +431,10 @@ class KafkaConnectConfigurationBuilderTest {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("myconfig", "abc");
         userConfiguration.put("myconfig2", 123);
-        KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(configurations, true, true)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
+                .withUserConfiguration(configurations, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent(
@@ -460,11 +456,7 @@ class KafkaConnectConfigurationBuilderTest {
                 "config.storage.topic=connect-cluster-configs",
                 "status.storage.topic=connect-cluster-status",
                 "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter",
-                "metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "admin.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "producer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter",
-                "consumer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter,kafka.metrics.KafkaPrometheusMetricsReporter")
+                "value.converter=org.apache.kafka.connect.json.JsonConverter")
         );
     }
 
@@ -473,10 +465,10 @@ class KafkaConnectConfigurationBuilderTest {
         Map<String, Object> userConfiguration = new HashMap<>();
         userConfiguration.put("config.providers", "userenv");
         userConfiguration.put("config.providers.userenv.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
-        KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        KafkaConnectConfiguration configurations = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
 
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(configurations,  false, false)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
+                .withUserConfiguration(configurations, false, false)
                 .build();
 
         assertThat(configuration, isEquivalent(
@@ -503,7 +495,7 @@ class KafkaConnectConfigurationBuilderTest {
 
     @ParallelTest
     public void testWithRestListeners() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withRestListeners(8083)
                 .build();
 
@@ -520,7 +512,7 @@ class KafkaConnectConfigurationBuilderTest {
 
     @ParallelTest
     public void withPluginPath() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withPluginPath().build();
 
         assertThat(configuration, isEquivalent(
@@ -533,128 +525,20 @@ class KafkaConnectConfigurationBuilderTest {
         ));
     }
 
-    @ParallelTest
-    public void testNullUserConfiguration()  {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(null, false, false)
-                .build();
-
-        assertThat(configuration, isEquivalent("bootstrap.servers=my-cluster-kafka-bootstrap:9092",
-                "security.protocol=PLAINTEXT",
-                "producer.security.protocol=PLAINTEXT",
-                "consumer.security.protocol=PLAINTEXT",
-                "admin.security.protocol=PLAINTEXT",
-                "config.providers=strimzienv,strimzifile,strimzidir",
-                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
-                "config.providers.strimzienv.param.allowlist.pattern=.*",
-                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
-                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
-                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "group.id=connect-cluster",
-                "offset.storage.topic=connect-cluster-offsets",
-                "config.storage.topic=connect-cluster-configs",
-                "status.storage.topic=connect-cluster-status",
-                "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter"));
-    }
-
-    @ParallelTest
-    public void testUserConfigurationWithConfigProviders() {
-        Map<String, Object> userConfiguration = new HashMap<>();
-        userConfiguration.put("config.providers", "env");
-        userConfiguration.put("config.providers.env.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
-
-        KafkaConnectConfiguration kafkaConnectConfiguration = new io.strimzi.operator.cluster.model.KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
-
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(kafkaConnectConfiguration, false, false)
-                .build();
-
-        assertThat(configuration, isEquivalent("bootstrap.servers=my-cluster-kafka-bootstrap:9092",
-                "security.protocol=PLAINTEXT",
-                "producer.security.protocol=PLAINTEXT",
-                "consumer.security.protocol=PLAINTEXT",
-                "admin.security.protocol=PLAINTEXT",
-                "config.providers=env,strimzienv,strimzifile,strimzidir",
-                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
-                "config.providers.env.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
-                "config.providers.strimzienv.param.allowlist.pattern=.*",
-                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
-                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
-                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "group.id=connect-cluster",
-                "offset.storage.topic=connect-cluster-offsets",
-                "config.storage.topic=connect-cluster-configs",
-                "status.storage.topic=connect-cluster-status",
-                "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter"));
-    }
-
-    @ParallelTest
-    public void testNullUserConfigurationWithStrimziMetricsReporter() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(null, false, true)
-                .build();
-
-        assertThat(configuration, isEquivalent("bootstrap.servers=my-cluster-kafka-bootstrap:9092",
-                "security.protocol=PLAINTEXT",
-                "producer.security.protocol=PLAINTEXT",
-                "consumer.security.protocol=PLAINTEXT",
-                "admin.security.protocol=PLAINTEXT",
-                "config.providers=strimzienv,strimzifile,strimzidir",
-                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
-                "config.providers.strimzienv.param.allowlist.pattern=.*",
-                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
-                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
-                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "group.id=connect-cluster",
-                "offset.storage.topic=connect-cluster-offsets",
-                "config.storage.topic=connect-cluster-configs",
-                "status.storage.topic=connect-cluster-status",
-                "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter",
-                "metric.reporters=kafka.metrics.KafkaPrometheusMetricsReporter",
-                "admin.metric.reporters=kafka.metrics.KafkaPrometheusMetricsReporter",
-                "producer.metric.reporters=kafka.metrics.KafkaPrometheusMetricsReporter",
-                "consumer.metric.reporters=kafka.metrics.KafkaPrometheusMetricsReporter"));
-    }
-
-    @ParallelTest
-    public void testNullUserConfigurationWithJmxMetricsReporter() {
-        String configuration = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
-                .withUserConfiguration(null, true, false)
-                .build();
-
-        assertThat(configuration, isEquivalent("bootstrap.servers=my-cluster-kafka-bootstrap:9092",
-                "security.protocol=PLAINTEXT",
-                "producer.security.protocol=PLAINTEXT",
-                "consumer.security.protocol=PLAINTEXT",
-                "admin.security.protocol=PLAINTEXT",
-                "config.providers=strimzienv,strimzifile,strimzidir",
-                "config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider",
-                "config.providers.strimzienv.param.allowlist.pattern=.*",
-                "config.providers.strimzifile.class=org.apache.kafka.common.config.provider.FileConfigProvider",
-                "config.providers.strimzidir.class=org.apache.kafka.common.config.provider.DirectoryConfigProvider",
-                "config.providers.strimzidir.param.allowed.paths=/opt/kafka",
-                "group.id=connect-cluster",
-                "offset.storage.topic=connect-cluster-offsets",
-                "config.storage.topic=connect-cluster-configs",
-                "status.storage.topic=connect-cluster-status",
-                "key.converter=org.apache.kafka.connect.json.JsonConverter",
-                "value.converter=org.apache.kafka.connect.json.JsonConverter",
-                "metric.reporters=org.apache.kafka.common.metrics.JmxReporter",
-                "admin.metric.reporters=org.apache.kafka.common.metrics.JmxReporter",
-                "producer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter",
-                "consumer.metric.reporters=org.apache.kafka.common.metrics.JmxReporter"));
-    }
-
     static Stream<Arguments> userConfigurationWithMetricsReporters() {
         Map<String, Object> configMap = new HashMap<>();
-        //configMap.put("auto.create.topics.enable", "false");
+        configMap.put("bootstrap.servers", "my-cluster-kafka-bootstrap:9092");
+        configMap.put("producer.security.protocol", "PLAINTEXT");
+        configMap.put("consumer.security.protocol", "PLAINTEXT");
+        configMap.put("admin.security.protocol", "PLAINTEXT");
+        configMap.put("config.providers.strimzienv.class", "org.apache.kafka.common.config.provider.EnvVarConfigProvider");
+        configMap.put("config.providers.strimzienv.param.allowlist.pattern", ".*");
+        configMap.put("config.providers.strimzifile.class", "org.apache.kafka.common.config.provider.FileConfigProvider");
+        configMap.put("status.storage.topic", "connect-cluster-status");
+        configMap.put("value.converter", "org.apache.kafka.connect.json.JsonConverter");
         configMap.put("metric.reporters", "my.domain.CustomMetricReporter");
-        configMap.put("kafka.metrics.reporters", "my.domain.CustomYammerMetricReporter");
 
-        KafkaConnectConfiguration userConfig = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, configMap.entrySet());
+        KafkaConnectConfiguration userConfig = new KafkaConnectConfiguration(configMap.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
 
         String expectedConfig = "admin.security.protocol=PLAINTEXT\n"
                 + "bootstrap.servers=my-cluster-kafka-bootstrap:9092\n"
@@ -679,9 +563,7 @@ class KafkaConnectConfigurationBuilderTest {
                 Arguments.of(userConfig, false, false,
                         expectedConfig
                                 + "metric.reporters="
-                                + "my.domain.CustomMetricReporter\n"
-                                + "kafka.metrics.reporters="
-                                + "my.domain.CustomYammerMetricReporter"
+                                + "my.domain.CustomMetricReporter"
                 ),
 
                 Arguments.of(userConfig, true, false,
@@ -694,23 +576,19 @@ class KafkaConnectConfigurationBuilderTest {
                                 + "producer.metric.reporters="
                                 + "org.apache.kafka.common.metrics.JmxReporter\n"
                                 + "consumer.metric.reporters="
-                                + "org.apache.kafka.common.metrics.JmxReporter\n"
-                                + "kafka.metrics.reporters="
-                                + "my.domain.CustomYammerMetricReporter"
+                                + "org.apache.kafka.common.metrics.JmxReporter"
                 ),
                 Arguments.of(userConfig, false, true,
                         expectedConfig
                                 + "metric.reporters="
                                 + "my.domain.CustomMetricReporter,"
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "admin.metric.reporters="
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "producer.metric.reporters="
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "consumer.metric.reporters="
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                                + "kafka.metrics.reporters="
-                                + "my.domain.CustomYammerMetricReporter"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter"
                 ),
 
                 Arguments.of(userConfig, true, true,
@@ -718,18 +596,16 @@ class KafkaConnectConfigurationBuilderTest {
                                 + "metric.reporters="
                                 + "my.domain.CustomMetricReporter,"
                                 + "org.apache.kafka.common.metrics.JmxReporter,"
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "admin.metric.reporters="
                                 + "org.apache.kafka.common.metrics.JmxReporter,"
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "producer.metric.reporters="
                                 + "org.apache.kafka.common.metrics.JmxReporter,"
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter\n"
                                 + "consumer.metric.reporters="
                                 + "org.apache.kafka.common.metrics.JmxReporter,"
-                                + "kafka.metrics.KafkaPrometheusMetricsReporter\n"
-                                + "kafka.metrics.reporters="
-                                + "my.domain.CustomYammerMetricReporter"));
+                                + "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter"));
     }
 
     @ParameterizedTest
@@ -739,7 +615,7 @@ class KafkaConnectConfigurationBuilderTest {
             boolean injectJmx,
             boolean injectStrimzi,
             String expectedConfig) {
-        String actualConfig = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS)
+        String actualConfig = new KafkaConnectConfigurationBuilder(BOOTSTRAP_SERVERS, Reconciliation.DUMMY_RECONCILIATION)
                 .withUserConfiguration(userConfig, injectJmx, injectStrimzi)
                 .build();
 

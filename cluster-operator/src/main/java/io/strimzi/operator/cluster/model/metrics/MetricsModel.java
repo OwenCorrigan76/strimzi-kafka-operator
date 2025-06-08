@@ -17,5 +17,4 @@ public interface MetricsModel {
      * Metrics endpoint port number.
      */
     int METRICS_PORT = 9404;
-
 }

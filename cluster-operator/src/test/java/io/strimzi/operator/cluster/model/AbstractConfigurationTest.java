@@ -241,7 +241,7 @@ public class AbstractConfigurationTest {
         conf.put("ssl.endpoint.identification.algorithm", ""); // valid
         conf.put("ssl.keystore.location", "/tmp/my.keystore"); // invalid
 
-        KafkaConnectConfiguration configuration = new KafkaConnectConfiguration(Reconciliation.DUMMY_RECONCILIATION, conf.entrySet());
+        KafkaConnectConfiguration configuration = new KafkaConnectConfiguration(conf.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
 
         assertThat(configuration.asOrderedProperties().asMap().get("key.converter"), is("my.package.Converter"));
         assertThat(configuration.asOrderedProperties().asMap().get("ssl.keystore.location"), is(nullValue()));

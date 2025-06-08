@@ -34,7 +34,8 @@ public class KafkaConnectConfiguration extends AbstractConfiguration {
     }
 
     /**
-     * Constructor used to add user configuration.
+     * Copy constructor which creates new instance of the Kafka Connect configuration from existing configuration.
+     * It is useful when you need to modify an instance of the configuration without permanently changing the original.
      *
      * @param configuration User provided Kafka Connect configuration
      *
@@ -45,13 +46,13 @@ public class KafkaConnectConfiguration extends AbstractConfiguration {
 
 
     /**
-     * Constructor used to instantiate this class from JsonObject. Should be used to create configuration from
-     * ConfigMap / CRD.
+     * Copy constructor which creates new instance of the Kafka Connect configuration from existing configuration.
+     * It is useful when you need to modify an instance of the configuration without permanently changing the original.
      *
      * @param reconciliation  The reconciliation
      * @param jsonOptions     Json object with configuration options as key ad value pairs.
      */
-    public KafkaConnectConfiguration(Reconciliation reconciliation, Iterable<Map.Entry<String, Object>> jsonOptions) {
+    public KafkaConnectConfiguration(Iterable<Map.Entry<String, Object>> jsonOptions, Reconciliation reconciliation) {
         super(reconciliation, jsonOptions, FORBIDDEN_PREFIXES, FORBIDDEN_PREFIX_EXCEPTIONS, List.of(), DEFAULTS);
     }
 }

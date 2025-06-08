@@ -40,6 +40,7 @@ import io.fabric8.kubernetes.api.model.Volume;
 import io.fabric8.kubernetes.api.model.VolumeMount;
 import io.fabric8.kubernetes.api.model.VolumeMountBuilder;
 import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicy;
+import io.fabric8.kubernetes.api.model.networking.v1.NetworkPolicyIngressRule;
 import io.fabric8.kubernetes.api.model.policy.v1.PodDisruptionBudget;
 import io.fabric8.kubernetes.api.model.rbac.ClusterRoleBinding;
 import io.strimzi.api.kafka.model.common.CertSecretSource;
@@ -818,7 +819,7 @@ public class KafkaConnectClusterTest {
                 new PodDNSConfigOptionBuilder()
                         .withName("ndots")
                         .withValue("2")
-                        .build(), 
+                        .build(),
                 new PodDNSConfigOptionBuilder()
                         .withName("edns0")
                         .build()
@@ -831,46 +832,46 @@ public class KafkaConnectClusterTest {
                 .withWhenUnsatisfiable("ScheduleAnyway")
                 .withLabelSelector(new LabelSelectorBuilder().withMatchLabels(singletonMap("label", "value")).build())
                 .build();
-        
+
         ConfigMapVolumeSource configMap = new ConfigMapVolumeSourceBuilder()
                 .withName("configMap1")
                 .build();
-        
+
         SecretVolumeSource secret = new SecretVolumeSourceBuilder()
                 .withSecretName("secret1")
                 .build();
-        
+
         EmptyDirVolumeSource emptyDir = new EmptyDirVolumeSourceBuilder()
                 .withMedium("Memory")
                 .build();
-        
+
         AdditionalVolume additionalVolumeConfigMap = new AdditionalVolumeBuilder()
                 .withName("config-map-volume-name")
                 .withConfigMap(configMap)
                 .build();
-        
+
         AdditionalVolume additionalVolumeSecret = new AdditionalVolumeBuilder()
                 .withName("secret-volume-name")
                 .withSecret(secret)
                 .build();
-        
+
         AdditionalVolume additionalVolumeEmptyDir = new AdditionalVolumeBuilder()
                 .withName("empty-dir-volume-name")
                 .withEmptyDir(emptyDir)
                 .build();
-        
+
         VolumeMount additionalVolumeMountConfigMap = new VolumeMountBuilder()
                 .withName("config-map-volume-name")
                 .withMountPath("/mnt/config")
                 .withSubPath("def")
                 .build();
-        
+
         VolumeMount additionalVolumeMountSecret = new VolumeMountBuilder()
                 .withName("secret-volume-name")
                 .withMountPath("/mnt/secret")
                 .withSubPath("abc")
                 .build();
-        
+
         VolumeMount additionalVolumeMountEmptyDir = new VolumeMountBuilder()
                 .withName("empty-dir-volume-name")
                 .withMountPath("/mnt/empty-dir")
@@ -2180,7 +2181,7 @@ public class KafkaConnectClusterTest {
     }
 
     @ParallelTest
-    public void testStrimziMetricsReporterConfig() {
+    public void testStrimziMetricsReporterConfigs() {
         MetricsConfig metrics = new io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder()
                 .withNewValues()
                     .withAllowList("kafka_log.*", "kafka_network.*")
@@ -2195,6 +2196,13 @@ public class KafkaConnectClusterTest {
         KafkaConnectCluster kc = KafkaConnectCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaConnect, VERSIONS, SHARED_ENV_PROVIDER);
 
         assertThat(kc.metrics(), is(notNullValue()));
+
+        NetworkPolicy np = kc.generateNetworkPolicy(true, null, null);
+        List<NetworkPolicyIngressRule> rules = np.getSpec().getIngress().stream()
+                .filter(ing -> ing.getPorts().get(0).getPort().equals(new IntOrString(StrimziMetricsReporterModel.METRICS_PORT)))
+                .toList();
+
+        assertThat(rules.size(), is(1));
         assertThat(((StrimziMetricsReporterModel) kc.metrics()).getAllowList(), is("kafka_log.*,kafka_network.*"));
     }
 

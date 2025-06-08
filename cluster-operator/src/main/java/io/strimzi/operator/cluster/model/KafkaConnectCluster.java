@@ -255,7 +255,7 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         // We have to check it and either use the Mirror Maker 2 configs or get the Connect configs
         AbstractConfiguration config = result.configuration;
         if (config == null) {
-            config = new KafkaConnectConfiguration(reconciliation, spec.getConfig().entrySet());
+            config = new KafkaConnectConfiguration(spec.getConfig().entrySet(), reconciliation);
             result.configuration = config;
         }
         if (result.tracing != null)   {
@@ -929,7 +929,7 @@ public class KafkaConnectCluster extends AbstractModel implements SupportsMetric
         // add the ConfigMap data entry for Connect configurations
         data.put(
                 KAFKA_CONNECT_CONFIGURATION_FILENAME,
-                new KafkaConnectConfigurationBuilder(bootstrapServers)
+                new KafkaConnectConfigurationBuilder(bootstrapServers, reconciliation)
                         .withRestListeners(REST_API_PORT)
                         .withPluginPath()
                         .withTls(tls)

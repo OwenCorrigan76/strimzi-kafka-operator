@@ -31,6 +31,7 @@ import io.strimzi.kafka.oauth.server.ServerConfig;
 import io.strimzi.kafka.oauth.server.plain.ServerPlainConfig;
 import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsReporter;
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.cruisecontrol.CruiseControlConfigurationParameters;
@@ -146,9 +147,9 @@ public class KafkaBrokerConfigurationBuilder {
     public KafkaBrokerConfigurationBuilder withStrimziMetricsReporter(MetricsModel model)   {
         if (model instanceof StrimziMetricsReporterModel reporterModel) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
-            writer.println("prometheus.metrics.reporter.listener.enable=true");
-            writer.println("prometheus.metrics.reporter.listener=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
-            writer.println("prometheus.metrics.reporter.allowlist=" + reporterModel.getAllowList());
+            writer.println(StrimziMetricsReporterConfig.LISTENER_ENABLE + "=true");
+            writer.println(StrimziMetricsReporterConfig.LISTENER + "=http://:" + StrimziMetricsReporterModel.METRICS_PORT);
+            writer.println(StrimziMetricsReporterConfig.ALLOW_LIST + "=" + reporterModel.getAllowList());
             writer.println();
         }
         return this;
@@ -855,7 +856,7 @@ public class KafkaBrokerConfigurationBuilder {
             ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", "org.apache.kafka.common.metrics.JmxReporter");
         }
         if (injectStrimziMetricsReporter) {
-            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", "io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter");
+            ModelUtils.createOrAddListConfig(userConfig, "metric.reporters", StrimziMetricsReporterConfig.KAFKA_CLASS);
         }
     }
 
@@ -867,7 +868,7 @@ public class KafkaBrokerConfigurationBuilder {
      */
     private void maybeAddYammerMetricsReporters(KafkaConfiguration userConfig, boolean injectStrimziMetricsReporter) {
         if (injectStrimziMetricsReporter) {
-            ModelUtils.createOrAddListConfig(userConfig, "kafka.metrics.reporters", "io.strimzi.kafka.metrics.YammerPrometheusMetricsReporter");
+            ModelUtils.createOrAddListConfig(userConfig, "kafka.metrics.reporters", StrimziMetricsReporterConfig.YAMMER_CLASS);
         }
     }
 

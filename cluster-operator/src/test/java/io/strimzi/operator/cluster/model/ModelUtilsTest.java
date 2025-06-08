@@ -18,12 +18,16 @@ import io.strimzi.api.kafka.model.kafka.Storage;
 import io.strimzi.api.kafka.model.podset.StrimziPodSet;
 import io.strimzi.api.kafka.model.podset.StrimziPodSetBuilder;
 import io.strimzi.operator.cluster.KafkaVersionTestUtils;
+import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.test.annotations.ParallelSuite;
 import io.strimzi.test.annotations.ParallelTest;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 import static io.strimzi.operator.common.Util.parseMap;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -185,26 +189,26 @@ public class ModelUtilsTest {
 
     @ParallelTest
     public void testCreateOrAddListConfigDoesNotExists() {
-        Map<String, Object> userConfiguration = new java.util.HashMap<>();
-        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         ModelUtils.createOrAddListConfig(config1, "test-key", "test-value");
         assertThat(config1.getConfigOption("test-key"), is("test-value"));
 
-        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-1,test-value-2");
         assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2"));
     }
 
     @ParallelTest
     public void testCreateOrAddListConfigExists() {
-        Map<String, Object> userConfiguration = new java.util.HashMap<>();
-        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config1.setConfigOption("test-key", "test-value-1");
 
         ModelUtils.createOrAddListConfig(config1, "test-key", "test-value-2");
         assertThat(config1.getConfigOption("test-key"), is("test-value-1,test-value-2"));
 
-        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config2.setConfigOption("test-key", "test-value-1,test-value-2");
         ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-3");
         assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2,test-value-3"));
@@ -212,58 +216,58 @@ public class ModelUtilsTest {
 
     @ParallelTest
     public void testCreateOrAddListConfigExistsAndContainsValue() {
-        Map<String, Object> userConfiguration = new java.util.HashMap<>();
-        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config1 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config1.setConfigOption("test-key", "test-value-1");
         ModelUtils.createOrAddListConfig(config1, "test-key", "test-value-1");
         assertThat(config1.getConfigOption("test-key"), is("test-value-1"));
 
-        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+        KafkaConnectConfiguration config2 = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config2.setConfigOption("test-key", "test-value-1,test-value-2");
         ModelUtils.createOrAddListConfig(config2, "test-key", "test-value-1");
         assertThat(config2.getConfigOption("test-key"), is("test-value-1,test-value-2"));
     }
 
     @ParallelTest
-    public void testCreateOrAddConfigListWithDuplicate() {
-        Map<String, Object> userConfiguration = new java.util.HashMap<>();
-        KafkaConnectConfiguration config = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+    public void testCreateOrAddListConfigWithDuplicates() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config.setConfigOption("test-key", "test-value-1,test-value-1,test-value-2");
         ModelUtils.createOrAddListConfig(config, "test-key", "test-value-3,test-value-3");
         assertThat(config.getConfigOption("test-key"), is("test-value-1,test-value-2,test-value-3"));
     }
 
     @ParallelTest
-    public void testCreateOrAddConfigListOrdering() {
-        Map<String, Object> userConfiguration = new java.util.HashMap<>();
-        KafkaConnectConfiguration config = new KafkaConnectConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, userConfiguration.entrySet());
+    public void testCreateOrAddListConfigOrdering() {
+        Map<String, Object> userConfiguration = new HashMap<>();
+        KafkaConnectConfiguration config = new KafkaConnectConfiguration(userConfiguration.entrySet(), Reconciliation.DUMMY_RECONCILIATION);
         config.setConfigOption("test-key", "test-value-2,test-value-1");
         ModelUtils.createOrAddListConfig(config, "test-key", "test-value-3,");
         assertThat(config.getConfigOption("test-key"), is("test-value-2,test-value-1,test-value-3"));
     }
 
     @ParallelTest
-    public void testCreateOrAddConfigListWithNullConfig() {
-        KafkaConfiguration config = new KafkaConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, java.util.Set.of());
+    public void testCreateOrAddListConfigWithNullConfig() {
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
         config.setConfigOption("test-key", "test-value-1,test-value-2");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> ModelUtils.createOrAddListConfig(null, "test-key", "test-value-3"));
         assertThat(exception.getMessage(), is("Configuration is required"));
     }
 
     @ParallelTest
-    public void testCreateOrAddConfigListWithNullKey() {
-        KafkaConfiguration config = new KafkaConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, java.util.Set.of());
+    public void testCreateOrAddListConfigWithNullKey() {
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
         config.setConfigOption("test-key", "test-value-1,test-value-2");
-        java.util.stream.Stream.of(null, "", " ")
+        Stream.of(null, "", " ")
                 .map(key -> assertThrows(IllegalArgumentException.class, () -> ModelUtils.createOrAddListConfig(config, key, "test-value-3")))
                 .forEach(e -> assertThat(e.getMessage(), is("Configuration key is required")));
     }
 
     @ParallelTest
-    public void testCreateOrAddConfigListWithNullValue() {
-        KafkaConfiguration config = new KafkaConfiguration(io.strimzi.operator.common.Reconciliation.DUMMY_RECONCILIATION, java.util.Set.of());
+    public void testCreateOrAddListConfigWithNullValue() {
+        KafkaConfiguration config = new KafkaConfiguration(Reconciliation.DUMMY_RECONCILIATION, Set.of());
         config.setConfigOption("test-key", "test-value-1,test-value-2");
-        java.util.stream.Stream.of(null, "", " ")
+        Stream.of(null, "", " ")
                 .map(value -> assertThrows(IllegalArgumentException.class, () -> ModelUtils.createOrAddListConfig(config, "test-key", value)))
                 .forEach(e -> assertThat(e.getMessage(), is("Configuration values are required")));
     }

@@ -35,9 +35,10 @@ public class KafkaMirrorMaker2Configuration extends AbstractConfiguration {
     }
 
     /**
-     * Constructor used to add user configuration.
+     * Copy constructor which creates new instance of the Mirror Maker 2 configuration from existing configuration.
+     * It is useful when you need to modify an instance of the configuration without permanently changing the original.
      *
-     * @param configuration User provided MirrorMaker 2 configuration
+     * @param configuration Existing configuration
      *
      */
     public KafkaMirrorMaker2Configuration(KafkaMirrorMaker2Configuration configuration) {

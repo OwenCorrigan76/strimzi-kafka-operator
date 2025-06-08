@@ -18,6 +18,7 @@ import io.strimzi.api.kafka.model.mirrormaker2.KafkaMirrorMaker2;
 import io.strimzi.api.kafka.model.mirrormaker2.KafkaMirrorMaker2ClusterSpec;
 import io.strimzi.api.kafka.model.mirrormaker2.KafkaMirrorMaker2ConnectorSpec;
 import io.strimzi.api.kafka.model.mirrormaker2.KafkaMirrorMaker2MirrorSpec;
+//import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.ReconciliationLogger;
 import io.strimzi.operator.common.model.InvalidResourceException;
@@ -70,6 +71,7 @@ public class KafkaMirrorMaker2Connectors {
     private final List<KafkaMirrorMaker2MirrorSpec> mirrors;
     private final Tracing tracing;
     private final boolean rackAwarenessEnabled;
+    //private final boolean strimziMetricsReporterEnabled;
 
     /**
      * Constructor
@@ -83,6 +85,7 @@ public class KafkaMirrorMaker2Connectors {
         this.mirrors = kafkaMirrorMaker2.getSpec().getMirrors();
         this.tracing = kafkaMirrorMaker2.getSpec().getTracing();
         this.rackAwarenessEnabled = kafkaMirrorMaker2.getSpec().getRack() != null;
+        //this.strimziMetricsReporterEnabled = kafkaMirrorMaker2.getSpec().getMetricsConfig() != null;
     }
 
     /**
@@ -230,6 +233,13 @@ public class KafkaMirrorMaker2Connectors {
             String clientRackKey = "consumer.client.rack";
             config.put(clientRackKey, "${strimzifile:" + CONNECT_CONFIG_FILE + ":" + clientRackKey + "}");
         }
+
+//        // metrics are collected into a single registry and exposed using the Kafka Connect listener,
+//        // so we need to disable the listener here to avoid opening the default port (8080)
+//        if (strimziMetricsReporterEnabled) {
+//            config.put("metric.reporters", StrimziMetricsReporterConfig.KAFKA_CLASS);
+//            config.put(StrimziMetricsReporterConfig.LISTENER_ENABLE, "false");
+//        }
 
         return config;
     }
