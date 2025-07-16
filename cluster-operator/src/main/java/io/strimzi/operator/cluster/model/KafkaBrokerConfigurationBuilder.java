@@ -33,6 +33,7 @@ import io.strimzi.operator.cluster.model.cruisecontrol.CruiseControlMetricsRepor
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
+import io.strimzi.operator.common.InvalidConfigurationException;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.OrderedProperties;
 import io.strimzi.operator.common.model.cruisecontrol.CruiseControlConfigurationParameters;
@@ -41,6 +42,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -771,24 +774,8 @@ public class KafkaBrokerConfigurationBuilder {
     private void configProviders(KafkaConfiguration userConfig)    {
         printSectionHeader("Config providers");
 
-        String strimziConfigProviders;
-        if (node.broker()) {
-            // File and Directory providers are used only on broker nodes
-            strimziConfigProviders = "strimzienv,strimzifile,strimzidir";
-        } else {
-            strimziConfigProviders = "strimzienv";
-        }
-
-        if (userConfig != null
-                && !userConfig.getConfiguration().isEmpty()
-                && userConfig.getConfigOption("config.providers") != null) {
-            writer.println("# Configuration providers configured by the user and by Strimzi");
-            writer.println("config.providers=" + userConfig.getConfigOption("config.providers") + "," + strimziConfigProviders);
-            userConfig.removeConfigOption("config.providers");
-        } else {
-            writer.println("# Configuration providers configured by Strimzi");
-            writer.println("config.providers=" + strimziConfigProviders);
-        }
+        writer.println("# Configuration providers configured by the user and by Strimzi");
+        writer.println("config.providers=" + getConfigProviderAliases(userConfig));
 
         writer.println("config.providers.strimzienv.class=org.apache.kafka.common.config.provider.EnvVarConfigProvider");
         writer.println("config.providers.strimzienv.param.allowlist.pattern=.*");
@@ -802,6 +789,65 @@ public class KafkaBrokerConfigurationBuilder {
         }
 
         writer.println();
+    }
+
+    /**
+     * Get the Kafka configuration provider aliases, throwing an InvalidConfigurationException if any user provided aliases are found that would overwrite the Strimzi defined configuration providers
+     *
+     * @param userConfig                The user configuration to extract the possible user-provided config provider configuration from
+     * @return                          The Kafka configuration provider aliases
+     */
+    private String getConfigProviderAliases(KafkaConfiguration userConfig) {
+        Collection<String> strimziAliases = new ArrayList<>();
+        strimziAliases.add("strimzienv");
+        if (node.broker()) {
+            // File and Directory providers are used only on broker nodes
+            strimziAliases.add("strimzifile");
+            strimziAliases.add("strimzidir");
+        }
+
+        if (userConfig != null
+                && !userConfig.getConfiguration().isEmpty()
+                && userConfig.getConfigOption("config.providers") != null) {
+            String userAliases = userConfig.getConfigOption("config.providers");
+
+            Arrays.asList(userAliases.split(",")).stream().forEach(userAlias -> {
+                if (strimziAliases.contains(userAlias)) {
+                    throw new InvalidConfigurationException("config.provider " + userAlias + " not permitted as it reserved for Strimzi. Not permitted aliases: " + strimziAliases);
+                }
+            });
+
+            userConfig.removeConfigOption("config.providers");
+            return userAliases + "," + String.join(",", strimziAliases);
+        } else {
+            return String.join(",", strimziAliases);
+        }
+
+    }
+
+    /**
+     * Get the user provided Kafka configuration provider aliases, throwing an InvalidConfigurationException if any are found that would overwrite the Strimzi defined configuration providers
+     *
+     * @param strimziConfigProviders    The Strimzi defined configuration providers
+     * @param userConfig                The user configuration to extract the possible user-provided config provider configuration from
+     * @return                          The user defined Kafka configuration provider aliases or empty string
+     */
+    private String getUserConfigProviderAliases(Collection<String> strimziAliases, KafkaConfiguration userConfig) {
+        String userConfigProviderAliases = "";
+        if (userConfig != null
+                && !userConfig.getConfiguration().isEmpty()
+                && userConfig.getConfigOption("config.providers") != null) {
+            userConfigProviderAliases = userConfig.getConfigOption("config.providers");
+            Collection<String> userAliases = Arrays.asList(userConfigProviderAliases.split(","));
+
+            userAliases.stream().forEach(alias -> {
+                if (strimziAliases.contains(alias)) {
+                    throw new InvalidConfigurationException("config.provider " + alias + " not permitted as it reserved for Strimzi. Not permitted aliases: " + strimziAliases);
+                }
+            });
+            userConfig.removeConfigOption("config.providers");
+        }
+        return userConfigProviderAliases;
     }
 
     /**
@@ -838,34 +884,31 @@ public class KafkaBrokerConfigurationBuilder {
         return this;
     }
 
-    private void printMetricReporters(AbstractConfiguration userConfig,
+    private void printMetricReporters(KafkaConfiguration userConfig,
                                       boolean injectCcMetricsReporter,
                                       boolean injectKafkaJmxReporter,
                                       boolean injectStrimziMetricsReporter) {
         OrderedProperties props = new OrderedProperties();
         String configKey = "metric.reporters";
-        // the JmxReporter is explicitly added when metric.reporters is not empty
-        List<String> reporterClasses = List.of(
-                CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER,
-                "org.apache.kafka.common.metrics.JmxReporter",
-                StrimziMetricsReporterConfig.KAFKA_CLASS
-        );
-        List<Boolean> injectFlags = List.of(
-                injectCcMetricsReporter,
-                injectKafkaJmxReporter,
-                injectStrimziMetricsReporter
-        );
         boolean hasUserMetricReporters = false;
+        // the JmxReporter is explicitly added when metric.reporters is not empty
+        List<Map.Entry<String, Boolean>> reporterConfig = List.of(
+                Map.entry(CruiseControlMetricsReporter.CRUISE_CONTROL_METRIC_REPORTER, injectCcMetricsReporter),
+                Map.entry("org.apache.kafka.common.metrics.JmxReporter", injectKafkaJmxReporter),
+                Map.entry(StrimziMetricsReporterConfig.KAFKA_CLASS, injectStrimziMetricsReporter)
+        );
 
-        for (int i = 0; i < reporterClasses.size(); i++) {
-            if (userConfig != null && !userConfig.getConfiguration().isEmpty() &&
-                    userConfig.getConfigOption(configKey) != null && injectFlags.get(i)) {
-                hasUserMetricReporters = true;
-                props.addPair(configKey, userConfig.getConfigOption(configKey));
-                userConfig.removeConfigOption(configKey);
-            }
-            if (injectFlags.get(i)) {
-                AbstractConfiguration.createOrAddListProperty(props, configKey, reporterClasses.get(i));
+        for (Map.Entry<String, Boolean> reporter : reporterConfig) {
+            String reporterClass = reporter.getKey();
+            boolean injectFlag = reporter.getValue();
+            if (injectFlag) {
+                if (userConfig != null && !userConfig.getConfiguration().isEmpty() &&
+                        userConfig.getConfigOption(configKey) != null) {
+                    hasUserMetricReporters = true;
+                    props.addPair(configKey, userConfig.getConfigOption(configKey));
+                    userConfig.removeConfigOption(configKey);
+                }
+                AbstractConfiguration.createOrAddListProperty(props, configKey, reporterClass);
             }
         }
 
@@ -879,20 +922,21 @@ public class KafkaBrokerConfigurationBuilder {
         }
     }
 
-    private void printYammerMetricsReporters(AbstractConfiguration userConfig,
+    private void printYammerMetricsReporters(KafkaConfiguration userConfig,
                                              boolean injectStrimziMetricsReporter) {
         OrderedProperties props = new OrderedProperties();
         String configKey = "kafka.metrics.reporters";
         boolean hasUserMetricReporters = false;
 
-        if (userConfig != null && !userConfig.getConfiguration().isEmpty() &&
-                userConfig.getConfigOption(configKey) != null && injectStrimziMetricsReporter) {
-            hasUserMetricReporters = true;
-            props.addPair(configKey, userConfig.getConfigOption(configKey));
-            userConfig.removeConfigOption(configKey);
-        }
         if (injectStrimziMetricsReporter) {
-            AbstractConfiguration.createOrAddListProperty(props, configKey, StrimziMetricsReporterConfig.YAMMER_CLASS);
+            if (userConfig != null && !userConfig.getConfiguration().isEmpty() &&
+                    userConfig.getConfigOption(configKey) != null) {
+                hasUserMetricReporters = true;
+                props.addPair(configKey, userConfig.getConfigOption(configKey));
+                userConfig.removeConfigOption(configKey);
+            }
+            AbstractConfiguration.createOrAddListProperty(props, configKey,
+                    StrimziMetricsReporterConfig.YAMMER_CLASS);
         }
 
         if (!props.asMap().isEmpty()) {

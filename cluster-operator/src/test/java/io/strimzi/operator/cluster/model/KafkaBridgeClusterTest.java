@@ -142,7 +142,6 @@ public class KafkaBridgeClusterTest {
 
     protected List<EnvVar> getExpectedEnvVars() {
         List<EnvVar> expected = new ArrayList<>();
-        expected.add(new EnvVarBuilder().withName(KafkaBridgeCluster.ENV_VAR_KAFKA_BRIDGE_METRICS_ENABLED).withValue(String.valueOf(true)).build());
         expected.add(new EnvVarBuilder().withName(KafkaBridgeCluster.ENV_VAR_STRIMZI_GC_LOG_ENABLED).withValue(String.valueOf(JvmOptions.DEFAULT_GC_LOGGING_ENABLED)).build());
         return expected;
     }
@@ -952,20 +951,13 @@ public class KafkaBridgeClusterTest {
     @ParallelTest
     public void testKafkaBridgeContainerEnvVarsConflict() {
         ContainerEnvVar envVar1 = new ContainerEnvVar();
-        String testEnvOneKey = KafkaBridgeCluster.ENV_VAR_KAFKA_BRIDGE_METRICS_ENABLED;
-        String testEnvOneValue = "false";
-        envVar1.setName(testEnvOneKey);
-        envVar1.setValue(testEnvOneValue);
-
-        ContainerEnvVar envVar2 = new ContainerEnvVar();
-        String testEnvTwoKey = KafkaBridgeCluster.ENV_VAR_KAFKA_BRIDGE_TRUSTED_CERTS;
-        String testEnvTwoValue = "PEM certs";
-        envVar2.setName(testEnvTwoKey);
-        envVar2.setValue(testEnvTwoValue);
+        String testEnvKey = KafkaBridgeCluster.ENV_VAR_KAFKA_BRIDGE_TRUSTED_CERTS;
+        String testEnvValue = "PEM certs";
+        envVar1.setName(testEnvKey);
+        envVar1.setValue(testEnvValue);
 
         List<ContainerEnvVar> testEnvs = new ArrayList<>();
         testEnvs.add(envVar1);
-        testEnvs.add(envVar2);
         ContainerTemplate kafkaBridgeContainer = new ContainerTemplate();
         kafkaBridgeContainer.setEnv(testEnvs);
 
@@ -985,12 +977,9 @@ public class KafkaBridgeClusterTest {
 
         List<EnvVar> kafkaEnvVars = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resource, SHARED_ENV_PROVIDER).getEnvVars();
 
-        assertThat("Failed to prevent over writing existing container environment variable: " + testEnvOneKey,
-                kafkaEnvVars.stream().filter(env -> testEnvOneKey.equals(env.getName()))
-                        .map(EnvVar::getValue).findFirst().orElse("").equals(testEnvOneValue), is(false));
-        assertThat("Failed to prevent over writing existing container environment variable: " + testEnvTwoKey,
-                kafkaEnvVars.stream().filter(env -> testEnvTwoKey.equals(env.getName()))
-                        .map(EnvVar::getValue).findFirst().orElse("").equals(testEnvTwoValue), is(false));
+        assertThat("Failed to prevent over writing existing container environment variable: " + testEnvKey,
+                kafkaEnvVars.stream().filter(env -> testEnvKey.equals(env.getName()))
+                        .map(EnvVar::getValue).findFirst().orElse("").equals(testEnvValue), is(false));
     }
 
     @ParallelTest
@@ -1479,7 +1468,6 @@ public class KafkaBridgeClusterTest {
     public void testConfigurationConfigMap() {
         KafkaBridgeCluster kb = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, this.resource, SHARED_ENV_PROVIDER);
         ConfigMap configMap = kb.generateBridgeConfigMap(metricsAndLogging);
-
         assertThat(configMap, is(notNullValue()));
         assertThat(configMap.getData().get(LoggingModel.LOG4J2_CONFIG_MAP_KEY), is(notNullValue()));
         assertThat(configMap.getData().get(JmxPrometheusExporterModel.CONFIG_MAP_KEY), is(nullValue()));
