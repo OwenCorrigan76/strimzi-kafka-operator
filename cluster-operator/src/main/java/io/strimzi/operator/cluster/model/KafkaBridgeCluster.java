@@ -51,6 +51,7 @@ import io.strimzi.operator.cluster.model.logging.SupportsLogging;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
 import io.strimzi.operator.cluster.model.metrics.MetricsModel;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
+import io.strimzi.operator.cluster.model.metrics.SupportsMetrics;
 import io.strimzi.operator.cluster.model.securityprofiles.ContainerSecurityProviderContextImpl;
 import io.strimzi.operator.cluster.model.securityprofiles.PodSecurityProviderContextImpl;
 import io.strimzi.operator.common.Reconciliation;
@@ -70,7 +71,7 @@ import java.util.Map;
  * Kafka Bridge model class
  */
 @SuppressWarnings({"checkstyle:ClassFanOutComplexity"})
-public class KafkaBridgeCluster extends AbstractModel implements SupportsLogging {
+public class KafkaBridgeCluster extends AbstractModel implements SupportsLogging, SupportsMetrics {
     /**
      * Default Strimzi Metrics Reporter allow list.
      * Check example dashboards compatibility in case of changes to existing regexes.

@@ -379,8 +379,8 @@ public class KafkaBridgeConfigurationBuilder {
      * @return Returns the builder instance
      */
     public KafkaBridgeConfigurationBuilder withJmxPrometheusExporter(JmxPrometheusExporterModel model, boolean isMetricsEnabled)  {
-        if (model != null) {
-            printSectionHeader("Jmx Prometheus Exporter configuration");
+        if (model != null || isMetricsEnabled) {
+            printSectionHeader("Prometheus Jmx Exporter configuration");
             writer.println("bridge.metrics=jmxPrometheusExporter");
            // if isMetricsEnabled is not used, we pass the path of the config file. If it is used, the bridge will use the fallback config
             if (!isMetricsEnabled) {
