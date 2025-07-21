@@ -7,6 +7,8 @@ package io.strimzi.operator.cluster.model;
 import io.fabric8.kubernetes.api.model.Affinity;
 import io.fabric8.kubernetes.api.model.AffinityBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapKeySelector;
+import io.fabric8.kubernetes.api.model.ConfigMapKeySelectorBuilder;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSource;
 import io.fabric8.kubernetes.api.model.ConfigMapVolumeSourceBuilder;
 import io.fabric8.kubernetes.api.model.Container;
@@ -46,6 +48,9 @@ import io.strimzi.api.kafka.model.common.JvmOptionsBuilder;
 import io.strimzi.api.kafka.model.common.SystemPropertyBuilder;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationOAuthBuilder;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTlsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.JmxPrometheusExporterMetricsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.MetricsConfig;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.common.template.AdditionalVolume;
 import io.strimzi.api.kafka.model.common.template.AdditionalVolumeBuilder;
 import io.strimzi.api.kafka.model.common.template.ContainerEnvVar;
@@ -58,6 +63,7 @@ import io.strimzi.operator.cluster.PlatformFeaturesAvailability;
 import io.strimzi.operator.cluster.ResourceUtils;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.operator.common.model.InvalidResourceException;
 import io.strimzi.operator.common.model.Labels;
@@ -77,6 +83,7 @@ import java.util.TreeMap;
 
 import static io.strimzi.operator.cluster.model.KafkaBridgeCluster.BRIDGE_CONFIGURATION_FILENAME;
 import static io.strimzi.operator.cluster.model.KafkaBridgeCluster.ENV_VAR_KAFKA_INIT_INIT_FOLDER_KEY;
+import static io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel.CONFIG_MAP_KEY;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -157,7 +164,6 @@ public class KafkaBridgeClusterTest {
     @ParallelTest
     public void testDefaultValues() {
         KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, ResourceUtils.createEmptyKafkaBridge(namespace, cluster), SHARED_ENV_PROVIDER);
-
         assertThat(kbc.image, is("quay.io/strimzi/kafka-bridge:latest"));
         assertThat(kbc.getReplicas(), is(1));
         assertThat(kbc.readinessProbeOptions.getInitialDelaySeconds(), is(15));
@@ -1470,7 +1476,56 @@ public class KafkaBridgeClusterTest {
         ConfigMap configMap = kb.generateBridgeConfigMap(metricsAndLogging);
         assertThat(configMap, is(notNullValue()));
         assertThat(configMap.getData().get(LoggingModel.LOG4J2_CONFIG_MAP_KEY), is(notNullValue()));
-        assertThat(configMap.getData().get(JmxPrometheusExporterModel.CONFIG_MAP_KEY), is(nullValue()));
+        assertThat(configMap.getData().get(CONFIG_MAP_KEY), is(nullValue()));
         assertThat(configMap.getData().get(KafkaBridgeCluster.BRIDGE_CONFIGURATION_FILENAME), is(notNullValue()));
+    }
+
+    @ParallelTest
+    public void testStrimziMetricsReporterConfig() {
+        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
+                .editSpec()
+                    .withNewStrimziMetricsReporterConfig()
+                        .withNewValues()
+                            .withAllowList("kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count")
+                        .endValues()
+                    .endStrimziMetricsReporterConfig()
+                .endSpec()
+                .build();
+
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
+
+        assertThat(kbc.metrics(), is(notNullValue()));
+        assertThat(((StrimziMetricsReporterModel) kbc.metrics()).getAllowList(), is("kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count"));
+    }
+
+    @ParallelTest
+    public void testJmxPrometheusExporterConfig() {
+        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
+                .editSpec()
+                    .withNewJmxPrometheusExporterMetricsConfig()
+                        .withNewValueFrom()
+                            .withConfigMapKeyRef(new ConfigMapKeySelector("bridge-metrics", "my-bridge-bridge-config", false))
+                        .endValueFrom()
+                    .endJmxPrometheusExporterMetricsConfig()
+                .endSpec()
+                .build();
+
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
+
+        assertThat(kbc.metrics(), is(notNullValue()));
+        assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapKey(), is("bridge-metrics"));
+        assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapName(), is("my-bridge-bridge-config"));
+    }
+
+    @ParallelTest
+    public void testIsMetricsEnabled() {
+        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
+                .editSpec()
+                    .withEnableMetrics()
+                .endSpec()
+                .build();
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
+        // boolean defaults to false
+        assertThat(kbc.isMetricsEnabled(), is(false));
     }
 }

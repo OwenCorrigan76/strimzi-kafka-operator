@@ -4,6 +4,7 @@
  */
 package io.strimzi.operator.cluster.model;
 
+import io.fabric8.kubernetes.api.model.ConfigMapKeySelector;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeAdminClientSpec;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeAdminClientSpecBuilder;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeConsumerSpec;
@@ -12,6 +13,7 @@ import io.strimzi.api.kafka.model.bridge.KafkaBridgeHttpConfig;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeHttpConfigBuilder;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeProducerSpec;
 import io.strimzi.api.kafka.model.bridge.KafkaBridgeProducerSpecBuilder;
+import io.strimzi.api.kafka.model.bridge.KafkaBridgeSpecBuilder;
 import io.strimzi.api.kafka.model.common.ClientTls;
 import io.strimzi.api.kafka.model.common.ClientTlsBuilder;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationOAuth;
@@ -24,14 +26,23 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationScramSha512Builder;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTlsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.JmxPrometheusExporterMetricsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.common.tracing.OpenTelemetryTracing;
+import io.strimzi.api.kafka.model.connect.KafkaConnectSpecBuilder;
+import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.test.annotations.ParallelSuite;
 import io.strimzi.test.annotations.ParallelTest;
 
+import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 import static io.strimzi.operator.cluster.TestUtils.IsEquivalent.isEquivalent;
+import static net.bytebuddy.matcher.ElementMatchers.failSafe;
+import static net.bytebuddy.matcher.ElementMatchers.is;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -590,6 +601,82 @@ public class KafkaBridgeConfigurationBuilderTest {
                 "http.consumer.enabled=true",
                 "http.timeoutSeconds=-1",
                 "http.producer.enabled=true"
+        ));
+    }
+
+    @ParallelTest
+    public void testWithStrimziMetricsReporter() {
+        StrimziMetricsReporterModel model = new StrimziMetricsReporterModel(
+                new KafkaBridgeSpecBuilder()
+                        .withMetricsConfig(new StrimziMetricsReporterBuilder()
+                                .withNewValues()
+                                    .withAllowList("kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count")
+                                .endValues()
+                                .build())
+                        .build(), List.of(".*"));
+
+        String configuration = new KafkaBridgeConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, BRIDGE_CLUSTER, BRIDGE_BOOTSTRAP_SERVERS)
+                .withStrimziMetricsReporter(model)
+                .build();
+
+        assertThat(configuration, isEquivalent(
+                "bridge.id=my-bridge",
+                "bridge.metrics=strimziMetricsReporter",
+                "kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092",
+                "kafka.metric.reporters = io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter",
+                "kafka.prometheus.metrics.reporter.allowlist=kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count",
+                "kafka.prometheus.metrics.reporter.listener.enable=false",
+                "kafka.security.protocol=PLAINTEXT"
+        ));
+    }
+
+    @ParallelTest
+    public void testWithJmxPrometheusExporterNotIsMetricsEnabled() {
+        JmxPrometheusExporterModel model = new JmxPrometheusExporterModel(
+                new KafkaBridgeSpecBuilder()
+                        .withMetricsConfig(new JmxPrometheusExporterMetricsBuilder()
+                                .withNewValueFrom()
+                                //configmap reference
+                                    .withConfigMapKeyRef(new ConfigMapKeySelector("bridge-metrics", "my-bridge-bridge-config", false))
+                                .endValueFrom()
+                                .build())
+                        .build());
+
+        String configuration = new KafkaBridgeConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, BRIDGE_CLUSTER, BRIDGE_BOOTSTRAP_SERVERS)
+                .withJmxPrometheusExporter(model, false)
+                .build();
+
+        assertThat(configuration, isEquivalent(
+                "bridge.id=my-bridge",
+                "bridge.metrics=jmxPrometheusExporter",
+                "kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092",
+                "bridge.metrics.exporter.config.path=/opt/strimzi/custom-config/metrics-config.json",
+                "kafka.security.protocol=PLAINTEXT"
+        ));
+    }
+
+    @ParallelTest
+    public void testWithJmxPrometheusExporterIsMetricsEnabled() {
+        JmxPrometheusExporterModel model = new JmxPrometheusExporterModel(
+                new KafkaBridgeSpecBuilder()
+                        .withMetricsConfig(new JmxPrometheusExporterMetricsBuilder()
+                                .withNewValueFrom()
+                                //configmap reference
+                                    .withConfigMapKeyRef(new ConfigMapKeySelector("bridge-metrics", "my-bridge-bridge-config", false))
+                                .endValueFrom()
+                                .build())
+                        .build());
+
+        String configuration = new KafkaBridgeConfigurationBuilder(Reconciliation.DUMMY_RECONCILIATION, BRIDGE_CLUSTER, BRIDGE_BOOTSTRAP_SERVERS)
+                .withJmxPrometheusExporter(model, true)
+                .build();
+        System.out.println(model.getConfigMapName());
+
+        assertThat(configuration, isEquivalent(
+                "bridge.id=my-bridge",
+                "bridge.metrics=jmxPrometheusExporter",
+                "kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092",
+                "kafka.security.protocol=PLAINTEXT"
         ));
     }
 }
