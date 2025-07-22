@@ -27,10 +27,12 @@ import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticatio
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTls;
 import io.strimzi.api.kafka.model.common.authentication.KafkaClientAuthenticationTlsBuilder;
 import io.strimzi.api.kafka.model.common.metrics.JmxPrometheusExporterMetricsBuilder;
+import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporter;
 import io.strimzi.api.kafka.model.common.metrics.StrimziMetricsReporterBuilder;
 import io.strimzi.api.kafka.model.common.tracing.OpenTelemetryTracing;
 import io.strimzi.api.kafka.model.connect.KafkaConnectSpecBuilder;
 import io.strimzi.operator.cluster.model.metrics.JmxPrometheusExporterModel;
+import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterConfig;
 import io.strimzi.operator.cluster.model.metrics.StrimziMetricsReporterModel;
 import io.strimzi.operator.common.Reconciliation;
 import io.strimzi.test.annotations.ParallelSuite;
@@ -621,11 +623,11 @@ public class KafkaBridgeConfigurationBuilderTest {
 
         assertThat(configuration, isEquivalent(
                 "bridge.id=my-bridge",
-                "bridge.metrics=strimziMetricsReporter",
                 "kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092",
-                "kafka.metric.reporters = io.strimzi.kafka.metrics.KafkaPrometheusMetricsReporter",
-                "kafka.prometheus.metrics.reporter.allowlist=kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count",
-                "kafka.prometheus.metrics.reporter.listener.enable=false",
+                "bridge.metrics=" + StrimziMetricsReporter.TYPE_STRIMZI_METRICS_REPORTER,
+                "kafka.metric.reporters=" + StrimziMetricsReporterConfig.KAFKA_CLASS,
+                "kafka." + StrimziMetricsReporterConfig.ALLOW_LIST + "=kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count",
+                "kafka." + StrimziMetricsReporterConfig.LISTENER_ENABLE + "=false",
                 "kafka.security.protocol=PLAINTEXT"
         ));
     }
@@ -637,7 +639,7 @@ public class KafkaBridgeConfigurationBuilderTest {
                         .withMetricsConfig(new JmxPrometheusExporterMetricsBuilder()
                                 .withNewValueFrom()
                                 //configmap reference
-                                    .withConfigMapKeyRef(new ConfigMapKeySelector("bridge-metrics", "my-bridge-bridge-config", false))
+                                    .withNewConfigMapKeyRef("bridge-metrics", "metrics.json", false)
                                 .endValueFrom()
                                 .build())
                         .build());
@@ -662,8 +664,7 @@ public class KafkaBridgeConfigurationBuilderTest {
                         .withMetricsConfig(new JmxPrometheusExporterMetricsBuilder()
                                 .withNewValueFrom()
                                 //configmap reference
-                                    .withConfigMapKeyRef(new ConfigMapKeySelector("bridge-metrics", "my-bridge-bridge-config", false))
-                                .endValueFrom()
+                                    .withNewConfigMapKeyRef("bridge-metrics", "metrics.json", false)                                .endValueFrom()
                                 .build())
                         .build());
 

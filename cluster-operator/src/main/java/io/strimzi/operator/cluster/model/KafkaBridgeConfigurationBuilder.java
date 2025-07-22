@@ -362,7 +362,7 @@ public class KafkaBridgeConfigurationBuilder {
         if (model != null) {
             printSectionHeader("Strimzi Metrics Reporter configuration");
             writer.println("bridge.metrics=" + TYPE_STRIMZI_METRICS_REPORTER);
-            writer.println("kafka.metric.reporters = " + StrimziMetricsReporterConfig.KAFKA_CLASS);
+            writer.println("kafka.metric.reporters=" + StrimziMetricsReporterConfig.KAFKA_CLASS);
             writer.println("kafka." + StrimziMetricsReporterConfig.LISTENER_ENABLE + "=false");
             writer.println("kafka." + StrimziMetricsReporterConfig.ALLOW_LIST + "=" + model.getAllowList());
             writer.println();

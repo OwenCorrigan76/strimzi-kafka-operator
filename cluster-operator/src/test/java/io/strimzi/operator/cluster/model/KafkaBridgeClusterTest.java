@@ -59,6 +59,8 @@ import io.strimzi.api.kafka.model.common.template.DeploymentStrategy;
 import io.strimzi.api.kafka.model.common.template.IpFamily;
 import io.strimzi.api.kafka.model.common.template.IpFamilyPolicy;
 import io.strimzi.api.kafka.model.common.tracing.OpenTelemetryTracing;
+import io.strimzi.api.kafka.model.kafka.Kafka;
+import io.strimzi.api.kafka.model.kafka.KafkaBuilder;
 import io.strimzi.operator.cluster.PlatformFeaturesAvailability;
 import io.strimzi.operator.cluster.ResourceUtils;
 import io.strimzi.operator.cluster.model.logging.LoggingModel;
@@ -1481,8 +1483,34 @@ public class KafkaBridgeClusterTest {
     }
 
     @ParallelTest
+    public void testMetricsParsingFromConfigMap() {
+        KafkaBridge resource = new KafkaBridgeBuilder(this.resource)
+                .editSpec()
+                    .withNewJmxPrometheusExporterMetricsConfig()
+                        .withNewValueFrom()
+                            .withConfigMapKeyRef(new ConfigMapKeySelectorBuilder().withName("my-metrics-configuration").withKey("config.yaml").build())
+                        .endValueFrom()
+                    .endJmxPrometheusExporterMetricsConfig()
+                .endSpec()
+                .build();
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resource, SHARED_ENV_PROVIDER);
+
+        assertThat(kbc.metrics(), is(notNullValue()));
+        assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapName(), is("my-metrics-configuration"));
+        assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapKey(), is("config.yaml"));
+    }
+
+    @ParallelTest
+    public void testMetricsParsingNoMetrics() {
+        KafkaBridge resource = new KafkaBridgeBuilder(this.resource)
+                .build();
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resource, SHARED_ENV_PROVIDER);
+        assertThat ((JmxPrometheusExporterModel)(kbc.metrics()), is(nullValue()));
+    }
+
+    @ParallelTest
     public void testStrimziMetricsReporterConfig() {
-        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
+        KafkaBridge resource = new KafkaBridgeBuilder(this.resource)
                 .editSpec()
                     .withNewStrimziMetricsReporterConfig()
                         .withNewValues()
@@ -1492,7 +1520,7 @@ public class KafkaBridgeClusterTest {
                 .endSpec()
                 .build();
 
-        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resource, SHARED_ENV_PROVIDER);
 
         assertThat(kbc.metrics(), is(notNullValue()));
         assertThat(((StrimziMetricsReporterModel) kbc.metrics()).getAllowList(), is("kafka_producer_producer_metrics.*,kafka_producer_kafka_metrics_count_count"));
@@ -1500,7 +1528,7 @@ public class KafkaBridgeClusterTest {
 
     @ParallelTest
     public void testJmxPrometheusExporterConfig() {
-        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
+        KafkaBridge resource = new KafkaBridgeBuilder(this.resource)
                 .editSpec()
                     .withNewJmxPrometheusExporterMetricsConfig()
                         .withNewValueFrom()
@@ -1510,22 +1538,11 @@ public class KafkaBridgeClusterTest {
                 .endSpec()
                 .build();
 
-        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
+        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, resource, SHARED_ENV_PROVIDER);
 
         assertThat(kbc.metrics(), is(notNullValue()));
         assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapKey(), is("bridge-metrics"));
         assertThat(((JmxPrometheusExporterModel) kbc.metrics()).getConfigMapName(), is("my-bridge-bridge-config"));
     }
 
-    @ParallelTest
-    public void testIsMetricsEnabled() {
-        KafkaBridge kafkaBridge = new KafkaBridgeBuilder(this.resource)
-                .editSpec()
-                    .withEnableMetrics()
-                .endSpec()
-                .build();
-        KafkaBridgeCluster kbc = KafkaBridgeCluster.fromCrd(Reconciliation.DUMMY_RECONCILIATION, kafkaBridge, SHARED_ENV_PROVIDER);
-        // boolean defaults to false
-        assertThat(kbc.isMetricsEnabled(), is(false));
-    }
 }
